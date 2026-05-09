@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Login — SkillSwap</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #1a1a2e;
+    --accent: #e8a838;
+    --accent-light: #fdf3dc;
+    --accent-dark: #c4862a;
+    --surface: #f7f5f0;
+    --surface-2: #eeeae2;
+    --text-main: #1a1a2e;
+    --text-muted: #6b6878;
+    --text-light: #9896a4;
+    --white: #ffffff;
+    --border: rgba(26,26,46,0.1);
+    --error: #d85a30;
+    --error-light: #faece7;
+    --admin-accent: #534ab7;
+    --admin-light: #eeedfe;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--primary);
+    color: var(--text-main);
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    padding: 1rem;
+    position: relative; overflow: hidden;
+  }
+
+  /* background grid */
+  body::before {
+    content:''; position:absolute; inset:0;
+    background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+  body::after {
+    content:''; position:absolute; inset:0; pointer-events:none;
+    background:
+      radial-gradient(ellipse 60% 50% at 80% 20%, rgba(83,74,183,0.18) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 60% at 20% 80%, rgba(232,168,56,0.1) 0%, transparent 70%);
+  }
+
+  .login-card {
+    position: relative; z-index: 1;
+    background: var(--white); border-radius: 20px;
+    width: 100%; max-width: 420px;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.35);
+    overflow: hidden;
+  }
+
+  /* top stripe */
+  .card-stripe {
+    background: var(--admin-accent);
+    padding: 1.6rem 2rem;
+    position: relative; overflow: hidden;
+  }
+  .card-stripe::after {
+    content:''; position:absolute; inset:0;
+    background: radial-gradient(ellipse 80% 80% at 120% 50%, rgba(232,168,56,0.2) 0%, transparent 70%);
+  }
+  .stripe-top {
+    display: flex; align-items: center; justify-content: space-between;
+    position: relative; z-index: 1; margin-bottom: 1rem;
+  }
+  .stripe-logo {
+    display: flex; align-items: center; gap: 9px;
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.2rem; color: var(--white);
+    text-decoration: none;
+  }
+  .stripe-logo-dot {
+    width: 30px; height: 30px; border-radius: 7px;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.2);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .stripe-logo-dot svg { width: 16px; height: 16px; fill: var(--accent); }
+  .admin-badge {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.9);
+    font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; padding: 3px 9px; border-radius: 100px;
+  }
+  .stripe-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.4rem; color: var(--white);
+    position: relative; z-index: 1;
+  }
+  .stripe-sub { font-size: 0.8rem; color: rgba(255,255,255,0.6); position: relative; z-index: 1; margin-top: 2px; }
+
+  /* form area */
+  .card-body { padding: 2rem; }
+
+  .form-group { margin-bottom: 1.1rem; }
+  .form-label {
+    display: block; font-size: 0.82rem; font-weight: 600;
+    color: var(--text-main); margin-bottom: 0.4rem;
+  }
+  .input-wrap { position: relative; }
+  .input-icon {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    width: 16px; height: 16px; stroke: var(--text-muted); fill: none; stroke-width: 2;
+    pointer-events: none;
+  }
+  .form-input {
+    width: 100%; padding: 0.75rem 1rem 0.75rem 2.5rem;
+    border: 1.5px solid var(--border); border-radius: 10px;
+    background: var(--surface); font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem; color: var(--text-main); outline: none;
+    transition: border-color 0.18s, box-shadow 0.18s;
+  }
+  .form-input:focus { border-color: var(--admin-accent); box-shadow: 0 0 0 3px rgba(83,74,183,0.1); background: var(--white); }
+  .form-input::placeholder { color: var(--text-light); }
+  .form-input.err { border-color: var(--error); }
+
+  .pass-toggle {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer;
+    color: var(--text-muted); display: flex; align-items: center;
+  }
+  .pass-toggle:hover { color: var(--primary); }
+  .pass-toggle svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+  .err-msg {
+    display: none; color: var(--error); font-size: 0.75rem;
+    margin-top: 0.3rem; align-items: center; gap: 4px;
+  }
+  .err-msg.show { display: flex; }
+
+  .alert {
+    display: none; padding: 0.8rem 1rem; border-radius: 9px;
+    font-size: 0.84rem; margin-bottom: 1rem; align-items: center; gap: 8px;
+  }
+  .alert.show { display: flex; }
+  .alert-error { background: var(--error-light); color: var(--error); border: 1px solid rgba(216,90,48,0.2); }
+  .alert-success { background: #e1f5ee; color: #0f6e56; border: 1px solid rgba(29,158,117,0.2); }
+  .alert svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; flex-shrink: 0; }
+
+  .btn-submit {
+    width: 100%; padding: 0.875rem;
+    background: var(--admin-accent); color: var(--white);
+    border: none; border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s; margin-top: 0.25rem;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .btn-submit:hover { background: #3c3489; transform: translateY(-1px); }
+  .btn-submit:disabled { opacity: 0.7; pointer-events: none; }
+
+  .card-footer {
+    padding: 1rem 2rem 1.5rem;
+    text-align: center; border-top: 1px solid var(--border);
+  }
+  .card-footer a {
+    font-size: 0.82rem; color: var(--text-muted);
+    text-decoration: none; display: inline-flex; align-items: center; gap: 5px;
+  }
+  .card-footer a:hover { color: var(--primary); }
+  .card-footer a svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+  /* security notice */
+  .security-notice {
+    position: relative; z-index: 1;
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 1.5rem; font-size: 0.75rem; color: rgba(255,255,255,0.3);
+  }
+  .security-notice svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; flex-shrink: 0; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div>
+  <div class="login-card">
+    <div class="card-stripe">
+      <div class="stripe-top">
+        <a href="index.html" class="stripe-logo">
+          <div class="stripe-logo-dot"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg></div>
+          SkillSwap
+        </a>
+        <span class="admin-badge">Admin Portal</span>
+      </div>
+      <div class="stripe-title">Administrator access</div>
+      <div class="stripe-sub">Sign in with your admin credentials to continue</div>
+    </div>
+
+    <div class="card-body">
+      <div class="alert alert-error" id="alertError">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span id="alertMsg">Invalid admin credentials. Please try again.</span>
+      </div>
+      <div class="alert alert-success" id="alertSuccess">
+        <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/></svg>
+        Authentication successful. Loading admin panel…
+      </div>
+
+      <form id="adminForm" novalidate>
+        <div class="form-group">
+          <label class="form-label">Admin email</label>
+          <div class="input-wrap">
+            <svg class="input-icon" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            <input type="email" class="form-input" id="adminEmail" placeholder="admin@skillswap.ac.ke" autocomplete="username">
+          </div>
+          <div class="err-msg" id="emailErr">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+            Enter a valid email address.
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <div class="input-wrap">
+            <svg class="input-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <input type="password" class="form-input" id="adminPass" placeholder="Enter admin password" autocomplete="current-password">
+            <button type="button" class="pass-toggle" onclick="togglePass()">
+              <svg id="eyeIcon" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          <div class="err-msg" id="passErr">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+            Password is required.
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
+          <label style="display:flex;align-items:center;gap:7px;font-size:0.83rem;color:var(--text-muted);cursor:pointer;">
+            <input type="checkbox" style="accent-color:var(--admin-accent);"> Keep me signed in
+          </label>
+          <a href="#" style="font-size:0.8rem;color:var(--admin-accent);text-decoration:none;font-weight:500;">Forgot password?</a>
+        </div>
+
+        <button type="submit" class="btn-submit" id="submitBtn">
+          <span id="btnLabel">Sign in to Admin Panel</span>
+          <svg id="btnSpin" style="display:none;animation:spin 0.8s linear infinite;" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+        </button>
+      </form>
+    </div>
+
+    <div class="card-footer">
+      <a href="login.html">
+        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Student portal login
+      </a>
+    </div>
+  </div>
+
+  <div class="security-notice">
+    <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    Secure admin access · Authorised personnel only · All activity is logged
+  </div>
+</div>
+
+
+<script src="api.js"></script>
+<script>
+  // ── Toggle password visibility ─────────────────────────────────────
+  function togglePass() {
+    const inp  = document.getElementById('adminPass');
+    const icon = document.getElementById('eyeIcon');
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+    icon.innerHTML = inp.type === 'text'
+      ? '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>'
+      : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+  }
+
+  // ── Admin login — real API call ─────────────────────────────────────
+  document.getElementById('adminForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const email = document.getElementById('adminEmail').value.trim();
+    const pass  = document.getElementById('adminPass').value;
+
+    // Hide any previous alerts
+    document.getElementById('alertError').classList.remove('show');
+    document.getElementById('alertSuccess').classList.remove('show');
+
+    // Client-side validation
+    let valid = true;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      document.getElementById('emailErr').classList.add('show');
+      document.getElementById('adminEmail').classList.add('err');
+      valid = false;
+    } else {
+      document.getElementById('emailErr').classList.remove('show');
+      document.getElementById('adminEmail').classList.remove('err');
+    }
+    if (!pass) {
+      document.getElementById('passErr').classList.add('show');
+      document.getElementById('adminPass').classList.add('err');
+      valid = false;
+    } else {
+      document.getElementById('passErr').classList.remove('show');
+      document.getElementById('adminPass').classList.remove('err');
+    }
+    if (!valid) return;
+
+    // Show spinner
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    document.getElementById('btnLabel').textContent = 'Authenticating…';
+    document.getElementById('btnSpin').style.display = 'block';
+
+    try {
+      // Call the real backend
+      const data = await AuthAPI.login({ email, password: pass });
+
+      // FIX: reject non-admin accounts immediately
+      if (!data || data.role !== 'ADMIN') {
+        throw new Error('This account does not have admin access.');
+      }
+
+      // Store the JWT session
+      Auth.setSession(data);
+
+      // Show success then redirect
+      document.getElementById('alertSuccess').classList.add('show');
+      setTimeout(() => window.location.href = 'admin-dashboard.html', 1200);
+
+    } catch (err) {
+      // Show error message from backend or our own check
+      const msgEl = document.getElementById('alertMsg');
+      if (msgEl) msgEl.textContent = err.message || 'Invalid admin credentials.';
+      document.getElementById('alertError').classList.add('show');
+    } finally {
+      btn.disabled = false;
+      document.getElementById('btnLabel').textContent = 'Sign in to Admin Panel';
+      document.getElementById('btnSpin').style.display = 'none';
+    }
+  });
+</script>
+</body>
+</html>

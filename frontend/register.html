@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create Account — SkillSwap</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #1a1a2e;
+    --accent: #e8a838;
+    --accent-light: #fdf3dc;
+    --accent-dark: #c4862a;
+    --surface: #f7f5f0;
+    --surface-2: #eeeae2;
+    --text-main: #1a1a2e;
+    --text-muted: #6b6878;
+    --text-light: #9896a4;
+    --white: #ffffff;
+    --border: rgba(26,26,46,0.1);
+    --error: #d85a30;
+    --error-light: #faece7;
+    --success: #1d9e75;
+    --success-light: #e1f5ee;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--surface);
+    color: var(--text-main);
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* LEFT PANEL */
+  .left-panel {
+    background: var(--primary);
+    display: flex; flex-direction: column;
+    justify-content: space-between;
+    padding: 2.5rem;
+    position: relative; overflow: hidden;
+    min-height: 100vh;
+  }
+  .left-panel::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 50% 40% at 70% 20%, rgba(29,158,117,0.15) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 50% at 30% 90%, rgba(232,168,56,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .left-content { position: relative; z-index: 1; }
+  .nav-logo {
+    display: flex; align-items: center; gap: 10px;
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.4rem; color: var(--white); text-decoration: none;
+    margin-bottom: 4rem;
+  }
+  .logo-dot {
+    width: 34px; height: 34px; border-radius: 8px;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.2);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .logo-dot svg { width: 18px; height: 18px; fill: var(--accent); }
+  .left-headline {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2.4rem; color: var(--white);
+    line-height: 1.15; margin-bottom: 1rem;
+  }
+  .left-headline em { font-style: italic; color: var(--accent); }
+  .left-sub { color: rgba(255,255,255,0.55); font-size: 0.95rem; line-height: 1.7; max-width: 360px; margin-bottom: 3rem; }
+  .perks { display: flex; flex-direction: column; gap: 1rem; }
+  .perk {
+    display: flex; align-items: flex-start; gap: 12px;
+  }
+  .perk-icon {
+    width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.1);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .perk-icon svg { width: 16px; height: 16px; stroke: var(--accent); }
+  .perk-text h4 { font-size: 0.9rem; font-weight: 600; color: var(--white); margin-bottom: 0.2rem; }
+  .perk-text p { font-size: 0.8rem; color: rgba(255,255,255,0.5); line-height: 1.5; }
+  .left-footer {
+    position: relative; z-index: 1;
+    color: rgba(255,255,255,0.3); font-size: 0.75rem;
+    margin-top: 2rem;
+  }
+
+  /* RIGHT PANEL */
+  .right-panel {
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    padding: 3rem 2rem;
+    overflow-y: auto;
+  }
+  .form-card {
+    width: 100%; max-width: 440px;
+  }
+  .form-header { margin-bottom: 2rem; }
+  .form-header h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2rem; color: var(--primary); margin-bottom: 0.4rem;
+  }
+  .form-header p { color: var(--text-muted); font-size: 0.9rem; }
+  .form-header p a { color: var(--accent-dark); text-decoration: none; font-weight: 500; }
+  .form-header p a:hover { text-decoration: underline; }
+
+  /* STEP INDICATOR */
+  .step-indicator {
+    display: flex; align-items: center; gap: 0; margin-bottom: 2rem;
+  }
+  .step-dot {
+    display: flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; border-radius: 50%;
+    font-size: 0.78rem; font-weight: 700; flex-shrink: 0;
+    transition: all 0.3s;
+  }
+  .step-dot.active { background: var(--primary); color: var(--white); }
+  .step-dot.done { background: var(--success); color: var(--white); }
+  .step-dot.inactive { background: var(--surface-2); color: var(--text-muted); }
+  .step-line {
+    flex: 1; height: 2px; background: var(--border); transition: background 0.3s;
+  }
+  .step-line.done { background: var(--success); }
+  .step-label {
+    font-size: 0.72rem; color: var(--text-muted); text-align: center;
+    position: absolute;
+  }
+
+  .form-step { display: none; }
+  .form-step.active { display: block; }
+
+  .form-group { margin-bottom: 1.1rem; }
+  .form-label {
+    display: block; font-size: 0.82rem; font-weight: 600;
+    color: var(--text-main); margin-bottom: 0.4rem;
+  }
+  .form-input {
+    width: 100%; padding: 0.72rem 1rem;
+    border: 1.5px solid var(--border); border-radius: 10px;
+    background: var(--white); font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem; color: var(--text-main);
+    transition: border-color 0.2s, box-shadow 0.2s; outline: none;
+  }
+  .form-input:hover { border-color: rgba(26,26,46,0.2); }
+  .form-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(26,26,46,0.07);
+  }
+  .form-input.error-field { border-color: var(--error); }
+  .form-input::placeholder { color: var(--text-light); }
+  select.form-input { cursor: pointer; }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+  .password-wrapper { position: relative; }
+  .password-toggle {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer;
+    color: var(--text-muted); display: flex; align-items: center;
+  }
+  .password-toggle:hover { color: var(--primary); }
+
+  .password-strength { margin-top: 0.5rem; }
+  .strength-bar {
+    height: 4px; border-radius: 4px; background: var(--surface-2);
+    overflow: hidden; margin-bottom: 0.3rem;
+  }
+  .strength-fill {
+    height: 100%; border-radius: 4px; transition: width 0.3s, background 0.3s;
+    width: 0%;
+  }
+  .strength-text { font-size: 0.72rem; color: var(--text-muted); }
+
+  .error-msg {
+    display: none; color: var(--error); font-size: 0.76rem;
+    margin-top: 0.3rem; align-items: center; gap: 4px;
+  }
+  .error-msg.show { display: flex; }
+
+  .terms-label {
+    display: flex; align-items: flex-start; gap: 8px;
+    font-size: 0.83rem; color: var(--text-muted); cursor: pointer; line-height: 1.5;
+  }
+  .terms-label input { margin-top: 2px; accent-color: var(--primary); flex-shrink: 0; }
+  .terms-label a { color: var(--accent-dark); text-decoration: none; }
+  .terms-label a:hover { text-decoration: underline; }
+
+  .btn-submit {
+    width: 100%; padding: 0.875rem;
+    background: var(--primary); color: var(--white);
+    border: none; border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s; margin-top: 1.25rem;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .btn-submit:hover { background: #0f0f22; transform: translateY(-1px); }
+  .btn-back {
+    width: 100%; padding: 0.75rem;
+    background: transparent; color: var(--text-muted);
+    border: 1.5px solid var(--border); border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem; font-weight: 500; cursor: pointer;
+    transition: all 0.2s; margin-top: 0.75rem;
+  }
+  .btn-back:hover { border-color: var(--primary); color: var(--primary); }
+
+  .alert-box {
+    display: none; padding: 0.85rem 1rem;
+    border-radius: 10px; font-size: 0.85rem;
+    margin-bottom: 1.25rem; align-items: center; gap: 8px;
+  }
+  .alert-box.show { display: flex; }
+  .alert-error { background: var(--error-light); color: var(--error); border: 1px solid rgba(216,90,48,0.2); }
+  .alert-success { background: var(--success-light); color: #0f6e56; border: 1px solid rgba(29,158,117,0.2); }
+
+  /* SKILLS CHIPS */
+  .skills-picker { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
+  .skill-chip {
+    padding: 0.35rem 0.85rem; border-radius: 100px;
+    border: 1.5px solid var(--border); background: var(--white);
+    font-size: 0.8rem; font-weight: 500; color: var(--text-muted);
+    cursor: pointer; transition: all 0.2s; user-select: none;
+  }
+  .skill-chip:hover { border-color: var(--primary); color: var(--primary); }
+  .skill-chip.selected {
+    background: var(--primary); color: var(--white);
+    border-color: var(--primary);
+  }
+
+  /* SUCCESS STATE */
+  .success-state {
+    text-align: center; padding: 2rem 0;
+    display: none;
+  }
+  .success-state.show { display: block; }
+  .success-icon {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: var(--success-light);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1.5rem;
+  }
+  .success-icon svg { stroke: var(--success); }
+  .success-state h3 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.6rem; color: var(--primary); margin-bottom: 0.5rem;
+  }
+  .success-state p { color: var(--text-muted); font-size: 0.9rem; line-height: 1.7; }
+  .success-state .btn-submit { max-width: 280px; margin: 1.5rem auto 0; }
+
+  @media (max-width: 768px) {
+    body { grid-template-columns: 1fr; }
+    .left-panel { display: none; }
+    .right-panel { padding: 2rem 1.25rem; justify-content: flex-start; padding-top: 2.5rem; }
+    .form-grid { grid-template-columns: 1fr; }
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- LEFT PANEL -->
+<div class="left-panel">
+  <div class="left-content">
+    <a href="index.html" class="nav-logo">
+      <div class="logo-dot">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+      </div>
+      SkillSwap
+    </a>
+    <h1 class="left-headline">Start your<br><em>skill journey.</em></h1>
+    <p class="left-sub">Join hundreds of campus students already teaching, learning, and growing together. It's completely free.</p>
+    <div class="perks">
+      <div class="perk">
+        <div class="perk-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="perk-text">
+          <h4>Campus-only community</h4>
+          <p>Every user is a verified student at your institution — a safe, trusted network.</p>
+        </div>
+      </div>
+      <div class="perk">
+        <div class="perk-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        </div>
+        <div class="perk-text">
+          <h4>Teach and learn simultaneously</h4>
+          <p>Offer a skill while learning a different one. Mutual growth, zero cost.</p>
+        </div>
+      </div>
+      <div class="perk">
+        <div class="perk-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <div class="perk-text">
+          <h4>Verified & safe platform</h4>
+          <p>Admin-monitored to keep quality high and interactions respectful.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="left-footer">© 2025 SkillSwap · Campus Skill Exchange</div>
+</div>
+
+<!-- RIGHT PANEL -->
+<div class="right-panel">
+  <div class="form-card">
+    <div class="form-header">
+      <h2>Create account</h2>
+      <p>Already have an account? <a href="login.html">Log in</a></p>
+    </div>
+
+    <!-- Step Indicator -->
+    <div class="step-indicator">
+      <div class="step-dot active" id="dot1">1</div>
+      <div class="step-line" id="line1"></div>
+      <div class="step-dot inactive" id="dot2">2</div>
+      <div class="step-line" id="line2"></div>
+      <div class="step-dot inactive" id="dot3">3</div>
+    </div>
+
+    <div class="alert-box alert-error" id="alertError">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+      <span id="alertMsg">Please fill in all required fields.</span>
+    </div>
+
+    <!-- STEP 1: Account Details -->
+    <div class="form-step active" id="step1">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">First name *</label>
+          <input type="text" class="form-input" id="firstName" placeholder="Jane">
+          <div class="error-msg" id="firstNameError">Required.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Last name *</label>
+          <input type="text" class="form-input" id="lastName" placeholder="Doe">
+          <div class="error-msg" id="lastNameError">Required.</div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Campus email *</label>
+        <input type="email" class="form-input" id="email" placeholder="jane.doe@campus.ac.ke">
+        <div class="error-msg" id="emailError">Enter a valid campus email.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password *</label>
+        <div class="password-wrapper">
+          <input type="password" class="form-input" id="password" placeholder="Min. 8 characters">
+          <button type="button" class="password-toggle" onclick="togglePass('password', this)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <div class="password-strength">
+          <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
+          <div class="strength-text" id="strengthText">Enter a password to see its strength</div>
+        </div>
+        <div class="error-msg" id="passwordError">Password must be at least 8 characters.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Confirm password *</label>
+        <div class="password-wrapper">
+          <input type="password" class="form-input" id="confirmPassword" placeholder="Repeat your password">
+          <button type="button" class="password-toggle" onclick="togglePass('confirmPassword', this)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <div class="error-msg" id="confirmError">Passwords do not match.</div>
+      </div>
+      <button class="btn-submit" onclick="nextStep(1)">Continue &rarr;</button>
+    </div>
+
+    <!-- STEP 2: Academic Info -->
+    <div class="form-step" id="step2">
+      <div class="form-group">
+        <label class="form-label">Department / Faculty *</label>
+        <select class="form-input" id="department">
+          <option value="">Select your department</option>
+          <option>Computer Science & Engineering</option>
+          <option>Business Administration</option>
+          <option>Mathematics & Statistics</option>
+          <option>Communication & Media</option>
+          <option>Biology & Life Sciences</option>
+          <option>Economics</option>
+          <option>Law</option>
+          <option>Education</option>
+          <option>Arts & Humanities</option>
+          <option>Other</option>
+        </select>
+        <div class="error-msg" id="deptError">Please select your department.</div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Year of study *</label>
+          <select class="form-input" id="yearOfStudy">
+            <option value="">Select year</option>
+            <option>Year 1</option>
+            <option>Year 2</option>
+            <option>Year 3</option>
+            <option>Year 4</option>
+            <option>Postgraduate</option>
+          </select>
+          <div class="error-msg" id="yearError">Required.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Student ID</label>
+          <input type="text" class="form-input" id="studentId" placeholder="e.g. CS/2021/045">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Short bio</label>
+        <textarea class="form-input" id="bio" rows="3" placeholder="Tell others a little about yourself and what you're studying..." style="resize:vertical;"></textarea>
+      </div>
+      <button class="btn-submit" onclick="nextStep(2)">Continue &rarr;</button>
+      <button class="btn-back" onclick="goBack(2)">← Back</button>
+    </div>
+
+    <!-- STEP 3: Skills -->
+    <div class="form-step" id="step3">
+      <div class="form-group">
+        <label class="form-label">Skills you can teach <span style="color:var(--text-muted);font-weight:400;">(pick at least 1)</span></label>
+        <div class="skills-picker" id="teachSkills">
+          <div class="skill-chip" onclick="toggleChip(this,'teach')">Python</div>
+          <div class="skill-chip" onclick="toggleChip(this,'teach')">JavaScript</div>
+          <div class="skill-chip" onclick="toggleChip(this,'teach')">UI/UX Design</div>
+          <div class="skill-chip" onclick="toggleChip(this,'teach')">Calculus</div>
+          <div class="skill-chip" onclick="toggleChip(this,'teach')">Statistics</div>
+          <div class="skill-chip" onclick="toggleChip(this,'teach')">French</div>
+          <div class="skill-chip" onclick="toggleChip(this,'teach')">Swahili</div>
+          <div class="skill-chip" onclick="toggleChip(this,'teach')">Accounting</div>
+          <div class="skill-chip" onclick="toggleChip(this,'teach')">Economics</div>
+          <div class="skill-chip" onclick="toggleChip(this,'teach')">Biology</div>
+          <div class="skill-chip" onclick="toggleChip(this,'teach')">Public Speaking</div>
+          <div class="skill-chip" onclick="toggleChip(this,'teach')">Essay Writing</div>
+          <div class="skill-chip" onclick="toggleChip(this,'teach')">Photography</div>
+          <div class="skill-chip" onclick="toggleChip(this,'teach')">Data Analysis</div>
+        </div>
+        <div class="error-msg" id="teachError" style="margin-top:0.5rem;">Select at least one skill you can teach.</div>
+      </div>
+      <div class="form-group" style="margin-top:1.25rem;">
+        <label class="form-label">Skills you want to learn <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
+        <div class="skills-picker" id="learnSkills">
+          <div class="skill-chip" onclick="toggleChip(this,'learn')">Python</div>
+          <div class="skill-chip" onclick="toggleChip(this,'learn')">JavaScript</div>
+          <div class="skill-chip" onclick="toggleChip(this,'learn')">UI/UX Design</div>
+          <div class="skill-chip" onclick="toggleChip(this,'learn')">Calculus</div>
+          <div class="skill-chip" onclick="toggleChip(this,'learn')">Statistics</div>
+          <div class="skill-chip" onclick="toggleChip(this,'learn')">French</div>
+          <div class="skill-chip" onclick="toggleChip(this,'learn')">Swahili</div>
+          <div class="skill-chip" onclick="toggleChip(this,'learn')">Accounting</div>
+          <div class="skill-chip" onclick="toggleChip(this,'learn')">Economics</div>
+          <div class="skill-chip" onclick="toggleChip(this,'learn')">Biology</div>
+          <div class="skill-chip" onclick="toggleChip(this,'learn')">Public Speaking</div>
+          <div class="skill-chip" onclick="toggleChip(this,'learn')">Essay Writing</div>
+          <div class="skill-chip" onclick="toggleChip(this,'learn')">Photography</div>
+          <div class="skill-chip" onclick="toggleChip(this,'learn')">Data Analysis</div>
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:1.25rem;">
+        <label class="terms-label">
+          <input type="checkbox" id="terms">
+          I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>. I confirm I am a current enrolled student.
+        </label>
+        <div class="error-msg" id="termsError">You must agree to the terms to continue.</div>
+      </div>
+      <button class="btn-submit" onclick="submitForm()" id="finalBtn">
+        <span id="finalBtnText">Create my account</span>
+        <svg id="finalSpinner" style="display:none;animation:spin 0.8s linear infinite;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+      </button>
+      <button class="btn-back" onclick="goBack(3)">← Back</button>
+    </div>
+
+    <!-- SUCCESS STATE -->
+    <div class="success-state" id="successState">
+      <div class="success-icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill="#1d9e75" stroke="none"/></svg>
+      </div>
+      <h3>Account created!</h3>
+      <p>Welcome to SkillSwap. Your profile is ready. Start exploring skills or complete your listing to be discovered by others.</p>
+      <a href="dashboard.html"><button class="btn-submit" style="max-width:260px;margin:1.5rem auto 0;">Go to my dashboard</button></a>
+    </div>
+  </div>
+</div>
+
+<script>
+  let currentStep = 1;
+
+  function togglePass(id, btn) {
+    const input = document.getElementById(id);
+    input.type = input.type === 'password' ? 'text' : 'password';
+  }
+
+  document.getElementById('password').addEventListener('input', function() {
+    const val = this.value;
+    const fill = document.getElementById('strengthFill');
+    const text = document.getElementById('strengthText');
+    let strength = 0;
+    if (val.length >= 8) strength++;
+    if (/[A-Z]/.test(val)) strength++;
+    if (/[0-9]/.test(val)) strength++;
+    if (/[^A-Za-z0-9]/.test(val)) strength++;
+    const widths = ['0%','25%','50%','75%','100%'];
+    const colors = ['#ccc','#e8a838','#e8a838','#1d9e75','#1d9e75'];
+    const labels = ['','Weak','Fair','Good','Strong'];
+    fill.style.width = widths[strength];
+    fill.style.background = colors[strength];
+    text.textContent = strength > 0 ? labels[strength] + ' password' : 'Enter a password to see its strength';
+  });
+
+  function toggleChip(el, type) {
+    el.classList.toggle('selected');
+  }
+
+  function showErr(id, show) {
+    document.getElementById(id).classList[show ? 'add' : 'remove']('show');
+  }
+  function markField(id, error) {
+    document.getElementById(id).classList[error ? 'add' : 'remove']('error-field');
+  }
+
+  function nextStep(from) {
+    document.getElementById('alertError').classList.remove('show');
+    if (from === 1) {
+      let valid = true;
+      const fn = document.getElementById('firstName').value.trim();
+      const ln = document.getElementById('lastName').value.trim();
+      const em = document.getElementById('email').value.trim();
+      const pw = document.getElementById('password').value;
+      const cp = document.getElementById('confirmPassword').value;
+      if (!fn) { showErr('firstNameError', true); markField('firstName', true); valid = false; } else { showErr('firstNameError', false); markField('firstName', false); }
+      if (!ln) { showErr('lastNameError', true); markField('lastName', true); valid = false; } else { showErr('lastNameError', false); markField('lastName', false); }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) { showErr('emailError', true); markField('email', true); valid = false; } else { showErr('emailError', false); markField('email', false); }
+      if (pw.length < 8) { showErr('passwordError', true); markField('password', true); valid = false; } else { showErr('passwordError', false); markField('password', false); }
+      if (pw !== cp || !cp) { showErr('confirmError', true); markField('confirmPassword', true); valid = false; } else { showErr('confirmError', false); markField('confirmPassword', false); }
+      if (!valid) return;
+    }
+    if (from === 2) {
+      let valid = true;
+      if (!document.getElementById('department').value) { showErr('deptError', true); valid = false; } else { showErr('deptError', false); }
+      if (!document.getElementById('yearOfStudy').value) { showErr('yearError', true); valid = false; } else { showErr('yearError', false); }
+      if (!valid) return;
+    }
+    document.getElementById('step' + from).classList.remove('active');
+    document.getElementById('step' + (from + 1)).classList.add('active');
+    document.getElementById('dot' + from).classList.remove('active');
+    document.getElementById('dot' + from).classList.add('done');
+    document.getElementById('dot' + from).innerHTML = '✓';
+    document.getElementById('line' + from).classList.add('done');
+    document.getElementById('dot' + (from + 1)).classList.remove('inactive');
+    document.getElementById('dot' + (from + 1)).classList.add('active');
+    currentStep = from + 1;
+  }
+
+  function goBack(from) {
+    document.getElementById('step' + from).classList.remove('active');
+    document.getElementById('step' + (from - 1)).classList.add('active');
+    document.getElementById('dot' + (from - 1)).classList.remove('done');
+    document.getElementById('dot' + (from - 1)).classList.add('active');
+    document.getElementById('dot' + (from - 1)).innerHTML = from - 1;
+    document.getElementById('line' + (from - 1)).classList.remove('done');
+    document.getElementById('dot' + from).classList.remove('active');
+    document.getElementById('dot' + from).classList.add('inactive');
+    currentStep = from - 1;
+  }
+
+  async function submitForm() {
+    let valid = true;
+    const teachSelected = document.querySelectorAll('#teachSkills .selected').length;
+    if (teachSelected === 0) { showErr('teachError', true); valid = false; } else { showErr('teachError', false); }
+    if (!document.getElementById('terms').checked) { showErr('termsError', true); valid = false; } else { showErr('termsError', false); }
+    if (!valid) return;
+
+    const btn = document.getElementById('finalBtn');
+    btn.style.opacity = '0.7'; btn.style.pointerEvents = 'none';
+    document.getElementById('finalBtnText').textContent = 'Creating account...';
+    document.getElementById('finalSpinner').style.display = 'block';
+
+    const payload = {
+      firstName:   document.getElementById('firstName').value.trim(),
+      lastName:    document.getElementById('lastName').value.trim(),
+      email:       document.getElementById('email').value.trim(),
+      password:    document.getElementById('password').value,
+      department:  document.getElementById('department').value,
+      yearOfStudy: document.getElementById('yearOfStudy').value,
+      studentId:   document.getElementById('studentId').value.trim() || null,
+      bio:         '',
+    };
+
+    try {
+      const data = await AuthAPI.register(payload);
+      Auth.setSession(data);
+      document.getElementById('step3').classList.remove('active');
+      document.getElementById('dot3').classList.remove('active');
+      document.getElementById('dot3').classList.add('done');
+      document.getElementById('dot3').innerHTML = '✓';
+      document.getElementById('line2').classList.add('done');
+      document.getElementById('successState').classList.add('show');
+    } catch (err) {
+      btn.style.opacity = '1'; btn.style.pointerEvents = 'auto';
+      document.getElementById('finalBtnText').textContent = 'Create my account';
+      document.getElementById('finalSpinner').style.display = 'none';
+      alert(err.message || 'Registration failed. Please try again.');
+    }
+  }
+</script>
+<script src="api.js"></script>
+</body>
+</html>

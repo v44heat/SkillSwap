@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SkillSwap — Campus Skill Exchange</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #1a1a2e;
+    --accent: #e8a838;
+    --accent-light: #fdf3dc;
+    --accent-dark: #c4862a;
+    --surface: #f7f5f0;
+    --surface-2: #eeeae2;
+    --text-main: #1a1a2e;
+    --text-muted: #6b6878;
+    --text-light: #9896a4;
+    --white: #ffffff;
+    --border: rgba(26,26,46,0.1);
+    --teal: #1d9e75;
+    --teal-light: #e1f5ee;
+    --coral: #d85a30;
+    --coral-light: #faece7;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--surface);
+    color: var(--text-main);
+    line-height: 1.6;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 2rem;
+    background: rgba(247,245,240,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-logo {
+    display: flex; align-items: center; gap: 10px;
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.4rem; color: var(--primary); text-decoration: none;
+  }
+  .logo-dot {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--primary);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .logo-dot svg { width: 18px; height: 18px; fill: var(--accent); }
+  .nav-links { display: flex; align-items: center; gap: 2rem; }
+  .nav-links a {
+    text-decoration: none; color: var(--text-muted);
+    font-size: 0.9rem; font-weight: 500; transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--primary); }
+  .nav-cta { display: flex; align-items: center; gap: 0.75rem; }
+  .btn-ghost {
+    padding: 0.5rem 1.25rem; border-radius: 8px;
+    border: 1.5px solid var(--border); background: transparent;
+    color: var(--text-main); font-family: 'DM Sans', sans-serif;
+    font-size: 0.875rem; font-weight: 500; cursor: pointer;
+    text-decoration: none; transition: all 0.2s;
+  }
+  .btn-ghost:hover { border-color: var(--primary); background: var(--surface-2); }
+  .btn-primary {
+    padding: 0.5rem 1.25rem; border-radius: 8px;
+    background: var(--primary); color: var(--white);
+    border: none; font-family: 'DM Sans', sans-serif;
+    font-size: 0.875rem; font-weight: 500; cursor: pointer;
+    text-decoration: none; transition: all 0.2s;
+  }
+  .btn-primary:hover { background: #0f0f22; transform: translateY(-1px); }
+  .hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; background: none; border: none; padding: 4px; }
+  .hamburger span { display: block; width: 22px; height: 2px; background: var(--primary); transition: all 0.3s; border-radius: 2px; }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: flex; align-items: center;
+    padding: 7rem 2rem 4rem;
+    position: relative; overflow: hidden;
+  }
+  .hero-bg {
+    position: absolute; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(ellipse 60% 50% at 80% 50%, rgba(232,168,56,0.12) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 40% at 20% 80%, rgba(29,158,117,0.08) 0%, transparent 70%);
+  }
+  .hero-grid {
+    position: absolute; inset: 0; pointer-events: none;
+    background-image: linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 50%, black 30%, transparent 100%);
+  }
+  .hero-inner {
+    max-width: 1200px; margin: 0 auto; width: 100%;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center;
+    position: relative; z-index: 1;
+  }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--accent-light); color: var(--accent-dark);
+    border: 1px solid rgba(232,168,56,0.3);
+    padding: 0.4rem 0.9rem; border-radius: 100px;
+    font-size: 0.8rem; font-weight: 600; margin-bottom: 1.5rem;
+    letter-spacing: 0.03em;
+  }
+  .badge-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .hero h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(2.5rem, 5vw, 3.8rem);
+    line-height: 1.1; color: var(--primary); margin-bottom: 1.25rem;
+  }
+  .hero h1 em { font-style: italic; color: var(--accent-dark); }
+  .hero p {
+    font-size: 1.05rem; color: var(--text-muted);
+    max-width: 460px; line-height: 1.75; margin-bottom: 2rem;
+  }
+  .hero-actions { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+  .btn-large {
+    padding: 0.85rem 2rem; font-size: 1rem; border-radius: 10px;
+  }
+  .btn-outline-large {
+    padding: 0.85rem 2rem; font-size: 1rem; border-radius: 10px;
+    border: 1.5px solid var(--border); background: transparent;
+    color: var(--text-main); text-decoration: none;
+    font-family: 'DM Sans', sans-serif; font-weight: 500;
+    transition: all 0.2s; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .btn-outline-large:hover { border-color: var(--primary); background: var(--surface-2); }
+  .hero-stats {
+    display: flex; gap: 2rem; margin-top: 2.5rem; flex-wrap: wrap;
+  }
+  .stat-item { }
+  .stat-num {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.8rem; color: var(--primary);
+  }
+  .stat-label { font-size: 0.8rem; color: var(--text-muted); font-weight: 500; }
+
+  /* HERO VISUAL */
+  .hero-visual { position: relative; display: flex; justify-content: center; }
+  .skill-card-cluster {
+    position: relative; width: 100%; max-width: 420px;
+    height: 420px;
+  }
+  .skill-card {
+    position: absolute;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.25rem 1.5rem;
+    box-shadow: 0 4px 24px rgba(26,26,46,0.08);
+    transition: transform 0.3s ease;
+  }
+  .skill-card:hover { transform: translateY(-4px) !important; }
+  .skill-card-1 { top: 0; left: 20px; width: 200px; transform: rotate(-3deg); }
+  .skill-card-2 { top: 60px; right: 0; width: 190px; transform: rotate(2deg); }
+  .skill-card-3 { bottom: 40px; left: 40px; width: 210px; transform: rotate(-1deg); }
+  .skill-card-4 { bottom: 80px; right: 30px; width: 175px; transform: rotate(3deg); }
+  .skill-card-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; font-weight: 600; margin-bottom: 0.75rem;
+  }
+  .skill-card h4 { font-size: 0.85rem; font-weight: 600; color: var(--primary); margin-bottom: 0.25rem; }
+  .skill-card p { font-size: 0.75rem; color: var(--text-muted); }
+  .skill-tag {
+    display: inline-block; font-size: 0.7rem; font-weight: 600;
+    padding: 2px 8px; border-radius: 100px; margin-top: 0.5rem;
+  }
+  .tag-teal { background: var(--teal-light); color: #0f6e56; }
+  .tag-amber { background: var(--accent-light); color: var(--accent-dark); }
+  .tag-coral { background: var(--coral-light); color: #993c1d; }
+  .tag-purple { background: #eeedfe; color: #3c3489; }
+  .av-teal { background: var(--teal-light); color: #0f6e56; }
+  .av-amber { background: var(--accent-light); color: var(--accent-dark); }
+  .av-coral { background: var(--coral-light); color: #993c1d; }
+  .av-purple { background: #eeedfe; color: #3c3489; }
+  .match-badge {
+    position: absolute; top: 180px; left: 50%; transform: translateX(-50%);
+    background: var(--primary); color: var(--accent);
+    border-radius: 100px; padding: 0.6rem 1.2rem;
+    font-size: 0.8rem; font-weight: 600;
+    display: flex; align-items: center; gap: 6px;
+    box-shadow: 0 4px 16px rgba(26,26,46,0.2);
+    z-index: 10; white-space: nowrap;
+  }
+
+  /* FEATURES */
+  .section { padding: 5rem 2rem; }
+  .section-inner { max-width: 1100px; margin: 0 auto; }
+  .section-label {
+    display: inline-block; font-size: 0.75rem; font-weight: 700;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--accent-dark); margin-bottom: 1rem;
+  }
+  .section-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+    color: var(--primary); max-width: 600px; margin-bottom: 1rem; line-height: 1.2;
+  }
+  .section-sub { color: var(--text-muted); max-width: 520px; line-height: 1.7; }
+
+  .features-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem; margin-top: 3rem;
+  }
+  .feature-card {
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: 16px; padding: 1.75rem;
+    transition: all 0.25s;
+  }
+  .feature-card:hover { transform: translateY(-3px); box-shadow: 0 8px 32px rgba(26,26,46,0.08); }
+  .feature-icon {
+    width: 48px; height: 48px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 1.25rem; font-size: 1.25rem;
+  }
+  .feature-card h3 { font-size: 1rem; font-weight: 600; color: var(--primary); margin-bottom: 0.5rem; }
+  .feature-card p { font-size: 0.875rem; color: var(--text-muted); line-height: 1.7; }
+
+  /* HOW IT WORKS */
+  .how-section { background: var(--primary); padding: 5rem 2rem; }
+  .how-inner { max-width: 1100px; margin: 0 auto; }
+  .how-section .section-label { color: var(--accent); }
+  .how-section .section-title { color: var(--white); }
+  .how-section .section-sub { color: rgba(255,255,255,0.6); }
+  .steps-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 2rem; margin-top: 3rem; position: relative;
+  }
+  .steps-grid::before {
+    content: ''; position: absolute;
+    top: 24px; left: 12.5%; right: 12.5%;
+    height: 1px; background: rgba(255,255,255,0.15);
+  }
+  .step-item { text-align: center; }
+  .step-num {
+    width: 48px; height: 48px; border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1.25rem;
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.2rem; color: var(--accent);
+  }
+  .step-item h4 { font-size: 0.95rem; font-weight: 600; color: var(--white); margin-bottom: 0.5rem; }
+  .step-item p { font-size: 0.82rem; color: rgba(255,255,255,0.55); line-height: 1.6; }
+
+  /* SKILLS SHOWCASE */
+  .skills-showcase { padding: 5rem 2rem; background: var(--white); }
+  .skills-inner { max-width: 1100px; margin: 0 auto; }
+  .skills-scroll {
+    display: flex; gap: 1rem; overflow-x: auto;
+    padding-bottom: 1rem; margin-top: 2rem;
+    scrollbar-width: none;
+  }
+  .skills-scroll::-webkit-scrollbar { display: none; }
+  .skill-pill {
+    flex-shrink: 0; padding: 0.5rem 1.1rem;
+    border-radius: 100px; font-size: 0.85rem; font-weight: 500;
+    border: 1.5px solid transparent; cursor: pointer; transition: all 0.2s;
+  }
+  .pill-active { background: var(--primary); color: var(--white); }
+  .pill-inactive { background: var(--surface); color: var(--text-muted); border-color: var(--border); }
+  .pill-inactive:hover { border-color: var(--primary); color: var(--primary); }
+  .skill-cards-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem; margin-top: 2rem;
+  }
+  .skill-listing-card {
+    border: 1px solid var(--border); border-radius: 14px;
+    padding: 1.25rem 1.5rem; transition: all 0.2s;
+    cursor: pointer;
+  }
+  .skill-listing-card:hover { border-color: var(--primary); box-shadow: 0 4px 20px rgba(26,26,46,0.06); }
+  .listing-top { display: flex; align-items: center; gap: 10px; margin-bottom: 0.75rem; }
+  .listing-avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.8rem; font-weight: 600; flex-shrink: 0;
+  }
+  .listing-info { flex: 1; min-width: 0; }
+  .listing-name { font-size: 0.875rem; font-weight: 600; color: var(--primary); }
+  .listing-dept { font-size: 0.75rem; color: var(--text-muted); }
+  .listing-skill { font-size: 0.95rem; font-weight: 600; color: var(--primary); margin-bottom: 0.4rem; }
+  .listing-desc { font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 0.75rem; }
+  .listing-bottom { display: flex; align-items: center; justify-content: space-between; }
+  .rating { display: flex; align-items: center; gap: 4px; font-size: 0.78rem; color: var(--text-muted); font-weight: 500; }
+  .stars { color: var(--accent); font-size: 0.75rem; }
+
+  /* CTA */
+  .cta-section { padding: 5rem 2rem; }
+  .cta-inner {
+    max-width: 800px; margin: 0 auto; text-align: center;
+    background: var(--accent-light);
+    border: 1px solid rgba(232,168,56,0.25);
+    border-radius: 24px; padding: 4rem 3rem;
+  }
+  .cta-inner .section-title { margin: 0 auto 1rem; }
+  .cta-inner p { color: var(--text-muted); margin-bottom: 2rem; }
+  .cta-actions { display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; }
+
+  /* FOOTER */
+  footer {
+    background: var(--primary); color: rgba(255,255,255,0.5);
+    padding: 2rem;
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 1rem;
+  }
+  .footer-logo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.2rem; color: var(--white);
+  }
+  footer p { font-size: 0.8rem; }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    .hero-inner { grid-template-columns: 1fr; text-align: center; }
+    .hero p { margin: 0 auto 2rem; }
+    .hero-actions { justify-content: center; }
+    .hero-stats { justify-content: center; }
+    .hero-visual { margin-top: 2rem; }
+    .features-grid { grid-template-columns: 1fr 1fr; }
+    .steps-grid { grid-template-columns: 1fr 1fr; }
+    .steps-grid::before { display: none; }
+    .skill-cards-grid { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 600px) {
+    nav { padding: 0.75rem 1.25rem; }
+    .nav-links { display: none; }
+    .nav-links.open {
+      display: flex; flex-direction: column; gap: 1rem;
+      position: fixed; top: 60px; left: 0; right: 0;
+      background: var(--surface); padding: 1.5rem;
+      border-bottom: 1px solid var(--border);
+      z-index: 99;
+    }
+    .hamburger { display: flex; }
+    .nav-cta .btn-ghost { display: none; }
+    .features-grid, .steps-grid, .skill-cards-grid { grid-template-columns: 1fr; }
+    .skill-card-cluster { height: 320px; max-width: 320px; }
+    .skill-card-1 { width: 160px; }
+    .skill-card-2 { width: 155px; }
+    .skill-card-3 { width: 165px; }
+    .skill-card-4 { width: 145px; }
+    .cta-inner { padding: 2.5rem 1.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="navbar">
+  <a href="index.html" class="nav-logo">
+    <div class="logo-dot">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+    </div>
+    SkillSwap
+  </a>
+  <div class="nav-links" id="navLinks">
+    <a href="#features">Features</a>
+    <a href="#how-it-works">How it works</a>
+    <a href="#skills">Browse skills</a>
+  </div>
+  <div class="nav-cta">
+    <a href="login.html" class="btn-ghost">Log in</a>
+    <a href="register.html" class="btn-primary">Get started</a>
+  </div>
+  <button class="hamburger" id="hamburger" aria-label="Toggle menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="hero-inner">
+    <div class="hero-content">
+      <div class="hero-badge">
+        <div class="badge-dot"></div>
+        Campus-exclusive platform
+      </div>
+      <h1>Exchange skills,<br><em>grow together</em></h1>
+      <p>SkillSwap connects students who want to learn with those ready to teach. Trade expertise, build connections, and unlock potential — right within your campus.</p>
+      <div class="hero-actions">
+        <a href="register.html" class="btn-primary btn-large">Start exchanging free</a>
+        <a href="#how-it-works" class="btn-outline-large">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8" fill="currentColor" stroke="none"/></svg>
+          See how it works
+        </a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat-item">
+          <div class="stat-num">240+</div>
+          <div class="stat-label">Active students</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">80+</div>
+          <div class="stat-label">Skills listed</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">4.8★</div>
+          <div class="stat-label">Avg. session rating</div>
+        </div>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="skill-card-cluster">
+        <div class="skill-card skill-card-1">
+          <div class="skill-card-avatar av-teal">AK</div>
+          <h4>Python Programming</h4>
+          <p>Data structures & algorithms</p>
+          <span class="skill-tag tag-teal">Teaching</span>
+        </div>
+        <div class="skill-card skill-card-2">
+          <div class="skill-card-avatar av-amber">MJ</div>
+          <h4>UI/UX Design</h4>
+          <p>Figma & prototyping</p>
+          <span class="skill-tag tag-amber">Teaching</span>
+        </div>
+        <div class="skill-card skill-card-3">
+          <div class="skill-card-avatar av-coral">TN</div>
+          <h4>Calculus II</h4>
+          <p>Derivatives & integrals</p>
+          <span class="skill-tag tag-coral">Teaching</span>
+        </div>
+        <div class="skill-card skill-card-4">
+          <div class="skill-card-avatar av-purple">BW</div>
+          <h4>Public Speaking</h4>
+          <p>Confidence & delivery</p>
+          <span class="skill-tag tag-purple">Teaching</span>
+        </div>
+        <div class="match-badge">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--accent)" stroke="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          Perfect match found!
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="section" id="features">
+  <div class="section-inner">
+    <div class="section-label">Why SkillSwap</div>
+    <h2 class="section-title">Everything you need to learn and teach</h2>
+    <p class="section-sub">A structured platform built for campus communities — making peer-to-peer learning seamless, safe, and rewarding.</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#e1f5ee;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0f6e56" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <h3>Discover skills easily</h3>
+        <p>Search and filter skills offered by fellow students. Filter by subject, department, or availability to find exactly what you need.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#fdf3dc;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#c4862a" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+        <h3>Book sessions instantly</h3>
+        <p>Send session requests and schedule learning meetings with a few clicks. Both parties get notified and can confirm availability.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#eeedfe;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3c3489" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <h3>Build your reputation</h3>
+        <p>Give and receive ratings after each session. Build a trusted profile that showcases your teaching ability and reliability.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#faece7;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#993c1d" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <h3>Smart messaging</h3>
+        <p>Communicate with potential exchange partners directly within the platform before committing to a session.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#e6f1fb;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#185fa5" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <h3>Safe campus community</h3>
+        <p>All users are verified campus students. Admin oversight ensures the platform remains trustworthy and spam-free.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#eaf3de;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b6d11" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        </div>
+        <h3>Track your progress</h3>
+        <p>View your session history, skills learned, skills taught, and performance metrics — all in one place.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how-section" id="how-it-works">
+  <div class="how-inner">
+    <div class="section-label">How it works</div>
+    <h2 class="section-title">Up and running in minutes</h2>
+    <p class="section-sub">Four simple steps to start exchanging skills with your campus community.</p>
+    <div class="steps-grid">
+      <div class="step-item">
+        <div class="step-num">1</div>
+        <h4>Create your profile</h4>
+        <p>Sign up with your campus email and build a profile that showcases who you are and what you study.</p>
+      </div>
+      <div class="step-item">
+        <div class="step-num">2</div>
+        <h4>List your skills</h4>
+        <p>Add the subjects or skills you're confident teaching. Set your availability and preferred session format.</p>
+      </div>
+      <div class="step-item">
+        <div class="step-num">3</div>
+        <h4>Find or request</h4>
+        <p>Browse available skills, find the right match, and send a session request to begin the exchange.</p>
+      </div>
+      <div class="step-item">
+        <div class="step-num">4</div>
+        <h4>Learn and rate</h4>
+        <p>Complete your session, then leave an honest rating to help the community grow stronger together.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SKILLS SHOWCASE -->
+<section class="skills-showcase" id="skills">
+  <div class="skills-inner">
+    <div class="section-label">Browse skills</div>
+    <h2 class="section-title">See what's on offer</h2>
+    <div class="skills-scroll">
+      <div class="skill-pill pill-active">All</div>
+      <div class="skill-pill pill-inactive">Programming</div>
+      <div class="skill-pill pill-inactive">Design</div>
+      <div class="skill-pill pill-inactive">Mathematics</div>
+      <div class="skill-pill pill-inactive">Languages</div>
+      <div class="skill-pill pill-inactive">Business</div>
+      <div class="skill-pill pill-inactive">Science</div>
+      <div class="skill-pill pill-inactive">Arts</div>
+    </div>
+    <div class="skill-cards-grid">
+      <div class="skill-listing-card">
+        <div class="listing-top">
+          <div class="listing-avatar av-teal">AK</div>
+          <div class="listing-info">
+            <div class="listing-name">Amara Kofi</div>
+            <div class="listing-dept">Computer Science, Year 3</div>
+          </div>
+        </div>
+        <div class="listing-skill">Python & Data Science</div>
+        <div class="listing-desc">Pandas, NumPy, matplotlib. Great for data analysis assignments and research projects.</div>
+        <div class="listing-bottom">
+          <div class="rating"><span class="stars">★★★★★</span> 4.9 · 12 sessions</div>
+          <span class="skill-tag tag-teal">Programming</span>
+        </div>
+      </div>
+      <div class="skill-listing-card">
+        <div class="listing-top">
+          <div class="listing-avatar av-amber">MJ</div>
+          <div class="listing-info">
+            <div class="listing-name">Maya Juma</div>
+            <div class="listing-dept">Design & Media, Year 2</div>
+          </div>
+        </div>
+        <div class="listing-skill">Figma & UI/UX Design</div>
+        <div class="listing-desc">Wireframing, prototyping, and design systems. Perfect for developers needing design help.</div>
+        <div class="listing-bottom">
+          <div class="rating"><span class="stars">★★★★★</span> 4.8 · 8 sessions</div>
+          <span class="skill-tag tag-amber">Design</span>
+        </div>
+      </div>
+      <div class="skill-listing-card">
+        <div class="listing-top">
+          <div class="listing-avatar av-coral">TN</div>
+          <div class="listing-info">
+            <div class="listing-name">Tom Ndege</div>
+            <div class="listing-dept">Mathematics, Year 4</div>
+          </div>
+        </div>
+        <div class="listing-skill">Calculus & Linear Algebra</div>
+        <div class="listing-desc">Differential equations, eigenvalues, matrix operations. Exam prep and problem sets.</div>
+        <div class="listing-bottom">
+          <div class="rating"><span class="stars">★★★★☆</span> 4.7 · 15 sessions</div>
+          <span class="skill-tag tag-coral">Mathematics</span>
+        </div>
+      </div>
+      <div class="skill-listing-card">
+        <div class="listing-top">
+          <div class="listing-avatar av-purple">BW</div>
+          <div class="listing-info">
+            <div class="listing-name">Beatrice Wanjiku</div>
+            <div class="listing-dept">Communication, Year 3</div>
+          </div>
+        </div>
+        <div class="listing-skill">French Language</div>
+        <div class="listing-desc">Conversational French, grammar, and writing. From beginner to intermediate level.</div>
+        <div class="listing-bottom">
+          <div class="rating"><span class="stars">★★★★★</span> 5.0 · 6 sessions</div>
+          <span class="skill-tag tag-purple">Languages</span>
+        </div>
+      </div>
+      <div class="skill-listing-card">
+        <div class="listing-top">
+          <div class="listing-avatar" style="background:#e6f1fb;color:#185fa5;">DS</div>
+          <div class="listing-info">
+            <div class="listing-name">Daniel Simiyu</div>
+            <div class="listing-dept">Business Admin, Year 2</div>
+          </div>
+        </div>
+        <div class="listing-skill">Financial Accounting</div>
+        <div class="listing-desc">Bookkeeping, balance sheets, income statements. Practical examples and case studies.</div>
+        <div class="listing-bottom">
+          <div class="rating"><span class="stars">★★★★☆</span> 4.6 · 9 sessions</div>
+          <span class="skill-tag" style="background:#e6f1fb;color:#185fa5;">Business</span>
+        </div>
+      </div>
+      <div class="skill-listing-card">
+        <div class="listing-top">
+          <div class="listing-avatar" style="background:#eaf3de;color:#3b6d11;">FO</div>
+          <div class="listing-info">
+            <div class="listing-name">Faith Otieno</div>
+            <div class="listing-dept">Biology, Year 3</div>
+          </div>
+        </div>
+        <div class="listing-skill">Cell Biology & Genetics</div>
+        <div class="listing-desc">DNA replication, protein synthesis, Mendelian genetics. Diagrams and concept maps included.</div>
+        <div class="listing-bottom">
+          <div class="rating"><span class="stars">★★★★★</span> 4.9 · 11 sessions</div>
+          <span class="skill-tag" style="background:#eaf3de;color:#3b6d11;">Science</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="cta-inner">
+    <div class="section-label">Ready to start?</div>
+    <h2 class="section-title">Join your campus skill community today</h2>
+    <p>It's free, it's peer-powered, and it's exclusive to your campus. Sign up and start exchanging within minutes.</p>
+    <div class="cta-actions">
+      <a href="register.html" class="btn-primary btn-large">Create your account</a>
+      <a href="login.html" class="btn-outline-large">Log in</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">SkillSwap</div>
+  <p>© 2026 SkillSwap. Campus Skill Exchange Information System.</p>
+  <p style="font-size:0.75rem;">Built for students, by students.</p>
+</footer>
+
+<script>
+  const hamburger = document.getElementById('hamburger');
+  const navLinks = document.getElementById('navLinks');
+  hamburger.addEventListener('click', () => {
+    navLinks.classList.toggle('open');
+  });
+
+  // Pill filter visual interaction
+  document.querySelectorAll('.skill-pill').forEach(pill => {
+    pill.addEventListener('click', function() {
+      document.querySelectorAll('.skill-pill').forEach(p => {
+        p.classList.remove('pill-active');
+        p.classList.add('pill-inactive');
+      });
+      this.classList.remove('pill-inactive');
+      this.classList.add('pill-active');
+    });
+  });
+</script>
+</body>
+</html>

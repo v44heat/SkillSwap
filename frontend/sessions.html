@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sessions — SkillSwap</title>
+<link rel="stylesheet" href="dashboard-shell.css">
+<style>
+  /* ── TABS ── */
+  .tabs {
+    display: flex; gap: 0; background: var(--white);
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 4px; width: fit-content; margin-bottom: 1.75rem;
+  }
+  .tab {
+    padding: 0.5rem 1.2rem; border-radius: 7px; font-size: 0.875rem;
+    font-weight: 500; color: var(--text-muted); cursor: pointer;
+    transition: all 0.18s; border: none; background: transparent;
+    font-family: 'DM Sans', sans-serif; display: flex; align-items: center; gap: 6px;
+  }
+  .tab:hover { color: var(--text-main); }
+  .tab.active { background: var(--primary); color: var(--white); }
+  .tab-count {
+    background: rgba(255,255,255,0.2); color: inherit;
+    font-size: 0.7rem; font-weight: 700; padding: 1px 6px; border-radius: 100px;
+  }
+  .tab.active .tab-count { background: rgba(255,255,255,0.2); }
+  .tab:not(.active) .tab-count { background: var(--surface-2); color: var(--text-muted); }
+
+  /* ── CALENDAR SECTION ── */
+  .calendar-layout { display: grid; grid-template-columns: 1fr 360px; gap: 1.5rem; align-items: start; }
+  .mini-calendar {
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: 14px; overflow: hidden; position: sticky; top: 80px;
+  }
+  .cal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 1.25rem; border-bottom: 1px solid var(--border);
+  }
+  .cal-month {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1rem; color: var(--primary);
+  }
+  .cal-nav { display: flex; gap: 4px; }
+  .cal-nav-btn {
+    width: 30px; height: 30px; border-radius: 7px; border: 1px solid var(--border);
+    background: transparent; cursor: pointer; display: flex; align-items: center;
+    justify-content: center; transition: all 0.18s;
+  }
+  .cal-nav-btn:hover { background: var(--surface); }
+  .cal-nav-btn svg { width: 14px; height: 14px; stroke: var(--text-muted); fill: none; stroke-width: 2; }
+  .cal-grid { padding: 0.75rem; }
+  .cal-days-header {
+    display: grid; grid-template-columns: repeat(7,1fr); text-align: center;
+    margin-bottom: 4px;
+  }
+  .cal-day-label { font-size: 0.68rem; font-weight: 700; color: var(--text-muted); padding: 4px 0; text-transform: uppercase; letter-spacing: 0.04em; }
+  .cal-dates { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; }
+  .cal-date {
+    aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    font-size: 0.8rem; cursor: pointer; transition: all 0.15s;
+    color: var(--text-muted); position: relative;
+  }
+  .cal-date:hover { background: var(--surface); color: var(--text-main); }
+  .cal-date.today { background: var(--accent-light); color: var(--accent-dark); font-weight: 700; }
+  .cal-date.has-session { color: var(--primary); font-weight: 600; }
+  .cal-date.selected { background: var(--primary); color: var(--white); font-weight: 600; }
+  .cal-date.other-month { color: var(--text-light); }
+  .session-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); position: absolute; bottom: 4px; }
+  .cal-date.selected .session-dot { background: rgba(255,255,255,0.5); }
+
+  /* ── SESSION LIST ── */
+  .sessions-main { display: flex; flex-direction: column; gap: 1.25rem; }
+  .session-date-group { }
+  .session-date-label {
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--text-muted);
+    margin-bottom: 0.6rem; padding-left: 2px;
+  }
+  .session-card {
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: 14px; overflow: hidden; transition: all 0.2s;
+  }
+  .session-card:hover { box-shadow: 0 4px 16px rgba(26,26,46,0.07); border-color: var(--border-2); }
+  .session-card-inner { display: flex; align-items: stretch; }
+  .session-color-bar { width: 4px; flex-shrink: 0; }
+  .session-card-body { padding: 1.1rem 1.25rem; flex: 1; min-width: 0; }
+  .session-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 0.75rem; }
+  .session-card-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .session-title { font-size: 0.95rem; font-weight: 700; color: var(--primary); margin-bottom: 2px; }
+  .session-subtitle { font-size: 0.8rem; color: var(--text-muted); }
+  .session-card-meta { display: flex; gap: 1.25rem; flex-wrap: wrap; margin-bottom: 0.85rem; }
+  .session-meta-item { display: flex; align-items: center; gap: 5px; font-size: 0.78rem; color: var(--text-muted); }
+  .session-meta-item svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; flex-shrink: 0; }
+  .session-card-footer { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; padding-top: 0.75rem; border-top: 1px solid var(--border); }
+  .session-role-badge {
+    font-size: 0.72rem; font-weight: 600; padding: 3px 9px; border-radius: 100px;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .role-teaching { background: var(--teal-light); color: #0f6e56; }
+  .role-learning { background: #eeedfe; color: #3c3489; }
+  .session-card-actions { display: flex; gap: 6px; }
+
+  /* ── HISTORY TABLE ── */
+  .history-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+  .history-filter { display: flex; gap: 0.5rem; }
+  .history-filter select { padding: 0.45rem 1.8rem 0.45rem 0.75rem; border: 1.5px solid var(--border); border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 0.82rem; color: var(--text-muted); background: var(--white); cursor: pointer; outline: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b6878' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 6px center; }
+
+  /* ── MODALS ── */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 500; align-items: center; justify-content: center; padding: 1rem; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--white); border-radius: 16px; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
+  .modal-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--white); z-index: 1; }
+  .modal-title { font-size: 1rem; font-weight: 600; color: var(--text-main); }
+  .modal-close { width: 32px; height: 32px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.1rem; color: var(--text-muted); transition: all 0.18s; }
+  .modal-close:hover { background: var(--surface-2); }
+  .modal-body { padding: 1.5rem; }
+  .modal-footer { padding: 1rem 1.5rem; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 0.75rem; }
+
+  .session-detail-row { display: flex; justify-content: space-between; padding: 0.6rem 0; border-bottom: 1px solid var(--border); font-size: 0.875rem; }
+  .session-detail-row:last-child { border-bottom: none; }
+  .session-detail-label { color: var(--text-muted); font-weight: 500; }
+  .session-detail-val { color: var(--text-main); font-weight: 600; text-align: right; }
+
+  /* Stars rating input */
+  .star-rating { display: flex; gap: 6px; margin: 0.5rem 0; }
+  .star-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--border-2); transition: color 0.15s; line-height: 1; }
+  .star-btn.active, .star-btn:hover { color: var(--accent); }
+
+  /* Toast */
+  .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 999; background: var(--primary); color: var(--white); padding: 0.85rem 1.25rem; border-radius: 10px; font-size: 0.875rem; font-weight: 500; display: flex; align-items: center; gap: 8px; transform: translateY(80px); opacity: 0; transition: all 0.3s ease; pointer-events: none; box-shadow: 0 4px 20px rgba(26,26,46,0.2); }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast svg { width: 16px; height: 16px; stroke: var(--accent); fill: none; stroke-width: 2.5; }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  @media (max-width: 960px) {
+    .calendar-layout { grid-template-columns: 1fr; }
+    .mini-calendar { position: static; }
+  }
+</style>
+</head>
+<body>
+
+<div class="sidebar-overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <a href="index.html" class="sidebar-logo">
+      <div class="logo-dot"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg></div>
+      SkillSwap
+    </a>
+  </div>
+  <div class="sidebar-user">
+    <div class="sidebar-avatar">AK</div>
+    <div class="sidebar-user-info">
+      <div class="sidebar-user-name">Amara Kofi</div>
+      <div class="sidebar-user-dept">Computer Science, Y3</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Main</div>
+    <a href="dashboard.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</a>
+    <a href="profile.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>My Profile</a>
+    <a href="my-skills.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>My Skills</a>
+    <div class="nav-section-label">Exchange</div>
+    <a href="browse-skills.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Browse Skills</a>
+    <a href="sessions.html" class="nav-item active"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Sessions<span class="nav-badge">2</span></a>
+    <a href="requests.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Requests<span class="nav-badge">3</span></a>
+    <a href="feedback.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>Feedback</a>
+  </nav>
+  <div class="sidebar-footer">
+    <a href="login.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Log out</a>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main-wrap">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="topbar-btn mobile-menu-btn" onclick="openSidebar()">
+        <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div>
+        <div class="topbar-title">Sessions</div>
+        <div class="breadcrumb"><a href="dashboard.html">Dashboard</a> / Sessions</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <a href="browse-skills.html" class="btn btn-primary">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Book a session
+      </a>
+    </div>
+  </header>
+
+  <main class="page-content">
+
+    <!-- STATS ROW -->
+    <div class="stats-row" style="margin-bottom:1.75rem;">
+      <div class="stat-card">
+        <div class="stat-card-top">
+          <div class="stat-icon" style="background:var(--teal-light);"><svg viewBox="0 0 24 24" style="stroke:#0f6e56;fill:none;stroke-width:2;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg></div>
+          <span class="stat-delta delta-up">+2 this week</span>
+        </div>
+        <div class="stat-num">14</div>
+        <div class="stat-label">Total sessions</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-top">
+          <div class="stat-icon" style="background:var(--accent-light);"><svg viewBox="0 0 24 24" style="stroke:var(--accent-dark);fill:none;stroke-width:2;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+          <span class="stat-delta delta-neutral">3 upcoming</span>
+        </div>
+        <div class="stat-num">3</div>
+        <div class="stat-label">Upcoming</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-top">
+          <div class="stat-icon" style="background:#eeedfe;"><svg viewBox="0 0 24 24" style="stroke:#3c3489;fill:none;stroke-width:2;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+          <span class="stat-delta delta-up">+3 this month</span>
+        </div>
+        <div class="stat-num">12</div>
+        <div class="stat-label">Students taught</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-top">
+          <div class="stat-icon" style="background:var(--teal-light);"><svg viewBox="0 0 24 24" style="stroke:#0f6e56;fill:none;stroke-width:2;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+          <span class="stat-delta delta-up">↑ 0.2</span>
+        </div>
+        <div class="stat-num">4.8</div>
+        <div class="stat-label">Avg. rating</div>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('upcoming', this)">
+        Upcoming <span class="tab-count">3</span>
+      </button>
+      <button class="tab" onclick="switchTab('history', this)">
+        History <span class="tab-count">11</span>
+      </button>
+    </div>
+
+    <!-- ── UPCOMING TAB ── -->
+    <div class="tab-panel active" id="tab-upcoming">
+      <div class="calendar-layout">
+
+        <!-- Session Cards -->
+        <div class="sessions-main">
+
+          <div class="session-date-group">
+            <div class="session-date-label">Tuesday, 31 March 2026</div>
+            <div class="session-card">
+              <div class="session-card-inner">
+                <div class="session-color-bar" style="background:var(--teal);"></div>
+                <div class="session-card-body">
+                  <div class="session-card-top">
+                    <div class="session-card-left">
+                      <div class="avatar avatar-md av-amber">MJ</div>
+                      <div>
+                        <div class="session-title">Python Programming</div>
+                        <div class="session-subtitle">with Maya Juma &nbsp;·&nbsp; Teaching</div>
+                      </div>
+                    </div>
+                    <span class="badge badge-teal">Confirmed</span>
+                  </div>
+                  <div class="session-card-meta">
+                    <div class="session-meta-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>2:00 PM – 3:00 PM</div>
+                    <div class="session-meta-item"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Library Room B, Campus</div>
+                    <div class="session-meta-item"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>1 hour session</div>
+                  </div>
+                  <div class="session-card-footer">
+                    <div>
+                      <span class="session-role-badge role-teaching">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                        Teaching
+                      </span>
+                    </div>
+                    <div class="session-card-actions">
+                      <button class="btn btn-ghost-sm" onclick="openDetailModal('Python Programming','Maya Juma','Tuesday, 31 March 2026','2:00 PM','1 hour','Library Room B','Confirmed','teaching')">View details</button>
+                      <button class="btn btn-outline" style="font-size:0.8rem;padding:0.4rem 0.9rem;" onclick="cancelSession(this)">Cancel</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="session-date-group">
+            <div class="session-date-label">Thursday, 2 April 2026</div>
+            <div class="session-card">
+              <div class="session-card-inner">
+                <div class="session-color-bar" style="background:var(--accent);"></div>
+                <div class="session-card-body">
+                  <div class="session-card-top">
+                    <div class="session-card-left">
+                      <div class="avatar avatar-md av-coral">TN</div>
+                      <div>
+                        <div class="session-title">UI/UX Design Basics</div>
+                        <div class="session-subtitle">with Tom Ndege &nbsp;·&nbsp; Learning</div>
+                      </div>
+                    </div>
+                    <span class="badge badge-amber">Pending</span>
+                  </div>
+                  <div class="session-card-meta">
+                    <div class="session-meta-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>4:30 PM – 6:00 PM</div>
+                    <div class="session-meta-item"><svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>Online (Google Meet)</div>
+                    <div class="session-meta-item"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>1.5 hour session</div>
+                  </div>
+                  <div class="session-card-footer">
+                    <div>
+                      <span class="session-role-badge role-learning">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                        Learning
+                      </span>
+                    </div>
+                    <div class="session-card-actions">
+                      <button class="btn btn-ghost-sm" onclick="openDetailModal('UI/UX Design Basics','Tom Ndege','Thursday, 2 April 2026','4:30 PM','1.5 hours','Online (Google Meet)','Pending','learning')">View details</button>
+                      <button class="btn btn-outline" style="font-size:0.8rem;padding:0.4rem 0.9rem;" onclick="cancelSession(this)">Cancel</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="session-date-group">
+            <div class="session-date-label">Saturday, 5 April 2026</div>
+            <div class="session-card">
+              <div class="session-card-inner">
+                <div class="session-color-bar" style="background:#534ab7;"></div>
+                <div class="session-card-body">
+                  <div class="session-card-top">
+                    <div class="session-card-left">
+                      <div class="avatar avatar-md av-purple">BW</div>
+                      <div>
+                        <div class="session-title">French Conversation</div>
+                        <div class="session-subtitle">with Beatrice Wanjiku &nbsp;·&nbsp; Learning</div>
+                      </div>
+                    </div>
+                    <span class="badge badge-teal">Confirmed</span>
+                  </div>
+                  <div class="session-card-meta">
+                    <div class="session-meta-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>10:00 AM – 11:00 AM</div>
+                    <div class="session-meta-item"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Student Centre, Block C</div>
+                    <div class="session-meta-item"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>1 hour session</div>
+                  </div>
+                  <div class="session-card-footer">
+                    <div>
+                      <span class="session-role-badge role-learning">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                        Learning
+                      </span>
+                    </div>
+                    <div class="session-card-actions">
+                      <button class="btn btn-ghost-sm" onclick="openDetailModal('French Conversation','Beatrice Wanjiku','Saturday, 5 April 2026','10:00 AM','1 hour','Student Centre, Block C','Confirmed','learning')">View details</button>
+                      <button class="btn btn-outline" style="font-size:0.8rem;padding:0.4rem 0.9rem;" onclick="cancelSession(this)">Cancel</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- MINI CALENDAR -->
+        <div class="mini-calendar">
+          <div class="cal-header">
+            <div class="cal-month">April 2026</div>
+            <div class="cal-nav">
+              <button class="cal-nav-btn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+              <button class="cal-nav-btn"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>
+            </div>
+          </div>
+          <div class="cal-grid">
+            <div class="cal-days-header">
+              <div class="cal-day-label">Su</div><div class="cal-day-label">Mo</div>
+              <div class="cal-day-label">Tu</div><div class="cal-day-label">We</div>
+              <div class="cal-day-label">Th</div><div class="cal-day-label">Fr</div>
+              <div class="cal-day-label">Sa</div>
+            </div>
+            <div class="cal-dates">
+              <!-- March overflow -->
+              <div class="cal-date other-month">29</div><div class="cal-date other-month">30</div><div class="cal-date other-month">31</div>
+              <!-- April -->
+              <div class="cal-date">1</div>
+              <div class="cal-date has-session">2<div class="session-dot"></div></div>
+              <div class="cal-date">3</div>
+              <div class="cal-date has-session">4<div class="session-dot"></div></div>
+              <div class="cal-date has-session selected">5<div class="session-dot"></div></div>
+              <div class="cal-date">6</div>
+              <div class="cal-date">7</div>
+              <div class="cal-date">8</div>
+              <div class="cal-date">9</div>
+              <div class="cal-date">10</div>
+              <div class="cal-date">11</div>
+              <div class="cal-date">12</div>
+              <div class="cal-date">13</div>
+              <div class="cal-date">14</div>
+              <div class="cal-date">15</div>
+              <div class="cal-date">16</div>
+              <div class="cal-date">17</div>
+              <div class="cal-date">18</div>
+              <div class="cal-date">19</div>
+              <div class="cal-date">20</div>
+              <div class="cal-date">21</div>
+              <div class="cal-date">22</div>
+              <div class="cal-date">23</div>
+              <div class="cal-date">24</div>
+              <div class="cal-date">25</div>
+              <div class="cal-date">26</div>
+              <div class="cal-date">27</div>
+              <div class="cal-date">28</div>
+              <div class="cal-date">29</div>
+              <div class="cal-date">30</div>
+              <!-- May overflow -->
+              <div class="cal-date other-month">1</div><div class="cal-date other-month">2</div>
+            </div>
+          </div>
+          <!-- Legend -->
+          <div style="padding:0.75rem 1rem;border-top:1px solid var(--border);display:flex;gap:1rem;">
+            <div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:var(--text-muted);">
+              <div style="width:7px;height:7px;border-radius:50%;background:var(--accent);"></div>Session booked
+            </div>
+            <div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:var(--text-muted);">
+              <div style="width:18px;height:18px;border-radius:6px;background:var(--primary);display:flex;align-items:center;justify-content:center;color:var(--white);font-size:0.65rem;font-weight:700;">5</div>Selected day
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── HISTORY TAB ── -->
+    <div class="tab-panel" id="tab-history">
+      <div class="history-header">
+        <div style="font-size:0.875rem;color:var(--text-muted);">Showing <strong style="color:var(--text-main);">11</strong> completed sessions</div>
+        <div class="history-filter">
+          <select><option>All skills</option><option>Python</option><option>Data Analysis</option></select>
+          <select><option>All roles</option><option>Teaching</option><option>Learning</option></select>
+        </div>
+      </div>
+      <div class="card">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Session</th>
+              <th>Partner</th>
+              <th>Date</th>
+              <th>Duration</th>
+              <th>Role</th>
+              <th>Rating</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Python Programming</strong></td>
+              <td><div class="flex-center"><div class="avatar avatar-sm av-coral" style="font-size:0.65rem;">DS</div><span>Daniel Simiyu</span></div></td>
+              <td style="color:var(--text-muted);font-size:0.82rem;">Mar 25, 2026</td>
+              <td style="color:var(--text-muted);">1 hr</td>
+              <td><span class="session-role-badge role-teaching">Teaching</span></td>
+              <td><span style="color:var(--accent);">★★★★★</span> <span style="font-size:0.78rem;color:var(--text-muted);">5.0</span></td>
+              <td><div class="td-actions"><button class="btn btn-ghost-sm" onclick="openDetailModal('Python Programming','Daniel Simiyu','Mar 25, 2026','2:00 PM','1 hour','Library Room A','Completed','teaching')">Details</button><button class="btn btn-ghost-sm" onclick="openRateModal('Daniel Simiyu')">Rate</button></div></td>
+            </tr>
+            <tr>
+              <td><strong>Data Analysis</strong></td>
+              <td><div class="flex-center"><div class="avatar avatar-sm av-purple" style="font-size:0.65rem;">JO</div><span>James Odhiambo</span></div></td>
+              <td style="color:var(--text-muted);font-size:0.82rem;">Mar 20, 2026</td>
+              <td style="color:var(--text-muted);">1.5 hr</td>
+              <td><span class="session-role-badge role-teaching">Teaching</span></td>
+              <td><span style="color:var(--accent);">★★★★★</span> <span style="font-size:0.78rem;color:var(--text-muted);">5.0</span></td>
+              <td><div class="td-actions"><button class="btn btn-ghost-sm" onclick="openDetailModal('Data Analysis','James Odhiambo','Mar 20, 2026','3:00 PM','1.5 hours','Online','Completed','teaching')">Details</button><button class="btn btn-ghost-sm" onclick="openRateModal('James Odhiambo')">Rate</button></div></td>
+            </tr>
+            <tr>
+              <td><strong>Python Programming</strong></td>
+              <td><div class="flex-center"><div class="avatar avatar-sm av-green" style="font-size:0.65rem;">FO</div><span>Faith Otieno</span></div></td>
+              <td style="color:var(--text-muted);font-size:0.82rem;">Mar 15, 2026</td>
+              <td style="color:var(--text-muted);">1 hr</td>
+              <td><span class="session-role-badge role-teaching">Teaching</span></td>
+              <td><span style="color:var(--accent);">★★★★☆</span> <span style="font-size:0.78rem;color:var(--text-muted);">4.0</span></td>
+              <td><div class="td-actions"><button class="btn btn-ghost-sm">Details</button><button class="btn btn-ghost-sm" onclick="openRateModal('Faith Otieno')">Rate</button></div></td>
+            </tr>
+            <tr>
+              <td><strong>Calculus II</strong></td>
+              <td><div class="flex-center"><div class="avatar avatar-sm av-coral" style="font-size:0.65rem;">TN</div><span>Tom Ndege</span></div></td>
+              <td style="color:var(--text-muted);font-size:0.82rem;">Mar 10, 2026</td>
+              <td style="color:var(--text-muted);">1 hr</td>
+              <td><span class="session-role-badge role-learning">Learning</span></td>
+              <td><span style="color:var(--accent);">★★★★★</span> <span style="font-size:0.78rem;color:var(--text-muted);">5.0</span></td>
+              <td><div class="td-actions"><button class="btn btn-ghost-sm">Details</button></div></td>
+            </tr>
+            <tr>
+              <td><strong>Python Programming</strong></td>
+              <td><div class="flex-center"><div class="avatar avatar-sm av-blue" style="font-size:0.65rem;">KM</div><span>Kevin Maina</span></div></td>
+              <td style="color:var(--text-muted);font-size:0.82rem;">Mar 5, 2026</td>
+              <td style="color:var(--text-muted);">1 hr</td>
+              <td><span class="session-role-badge role-teaching">Teaching</span></td>
+              <td><span style="color:var(--accent);">★★★★★</span> <span style="font-size:0.78rem;color:var(--text-muted);">5.0</span></td>
+              <td><div class="td-actions"><button class="btn btn-ghost-sm">Details</button><button class="btn btn-ghost-sm" onclick="openRateModal('Kevin Maina')">Rate</button></div></td>
+            </tr>
+            <tr>
+              <td><strong>Data Analysis</strong></td>
+              <td><div class="flex-center"><div class="avatar avatar-sm av-amber" style="font-size:0.65rem;">RK</div><span>Rachel Kamau</span></div></td>
+              <td style="color:var(--text-muted);font-size:0.82rem;">Feb 28, 2026</td>
+              <td style="color:var(--text-muted);">1.5 hr</td>
+              <td><span class="session-role-badge role-teaching">Teaching</span></td>
+              <td><span style="color:var(--accent);">★★★★☆</span> <span style="font-size:0.78rem;color:var(--text-muted);">4.0</span></td>
+              <td><div class="td-actions"><button class="btn btn-ghost-sm">Details</button></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- SESSION DETAIL MODAL -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Session details</div>
+      <div class="modal-close" onclick="closeModal('detailModal')">✕</div>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;align-items:center;gap:12px;padding:1rem;background:var(--surface);border-radius:10px;margin-bottom:1.25rem;">
+        <div class="avatar avatar-md av-teal" id="modalDetailAvatar">??</div>
+        <div>
+          <div style="font-weight:700;font-size:1rem;color:var(--primary);" id="modalDetailSkill">Skill</div>
+          <div style="font-size:0.8rem;color:var(--text-muted);">with <span id="modalDetailUser">Student</span></div>
+        </div>
+        <span class="badge" id="modalDetailStatus" style="margin-left:auto;">Status</span>
+      </div>
+      <div id="modalDetailRows"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('detailModal')">Close</button>
+      <button class="btn btn-primary" id="modalDetailAction">Mark as completed</button>
+    </div>
+  </div>
+</div>
+
+<!-- RATE SESSION MODAL -->
+<div class="modal-overlay" id="rateModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Rate session with <span id="rateUserName">student</span></div>
+      <div class="modal-close" onclick="closeModal('rateModal')">✕</div>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Overall rating *</label>
+        <div class="star-rating" id="starRating">
+          <button class="star-btn" data-val="1" onclick="setRating(1)">★</button>
+          <button class="star-btn" data-val="2" onclick="setRating(2)">★</button>
+          <button class="star-btn" data-val="3" onclick="setRating(3)">★</button>
+          <button class="star-btn" data-val="4" onclick="setRating(4)">★</button>
+          <button class="star-btn" data-val="5" onclick="setRating(5)">★</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Written feedback</label>
+        <textarea class="form-input" id="ratingComment" rows="3" placeholder="Share what made this session valuable (or how it could be better)…"></textarea>
+      </div>
+      <div style="background:var(--teal-light);border-radius:9px;padding:0.85rem 1rem;font-size:0.82rem;color:#0f6e56;display:flex;gap:8px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+        Ratings are visible to other students and help build trust in the community.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('rateModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitRating()">Submit rating</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/></svg>
+  <span id="toastMsg">Done!</span>
+</div>
+
+
+<script src="api.js"></script>
+<script>
+  function openSidebar() { document.getElementById('sidebar').classList.add('open'); document.getElementById('overlay').classList.add('open'); }
+  function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); }
+  function openModal(id) { document.getElementById(id).classList.add('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+  function switchTab(tab, btn) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + tab).classList.add('active');
+  }
+
+  function openDetailModal(skill, user, date, time, duration, location, status, role) {
+    document.getElementById('modalDetailSkill').textContent = skill;
+    document.getElementById('modalDetailUser').textContent = user;
+    const statusEl = document.getElementById('modalDetailStatus');
+    const statusMap = { Confirmed:'badge-teal', Pending:'badge-amber', Completed:'badge-green' };
+    statusEl.textContent = status;
+    statusEl.className = 'badge ' + (statusMap[status] || 'badge-gray');
+    const rows = [['Date',date],['Time',time],['Duration',duration],['Location',location],['Role',role==='teaching'?'Teaching':'Learning'],['Status',status]];
+    document.getElementById('modalDetailRows').innerHTML = rows.map(([l,v]) =>
+      `<div class="session-detail-row"><span class="session-detail-label">${l}</span><span class="session-detail-val">${v}</span></div>`
+    ).join('');
+    const actionBtn = document.getElementById('modalDetailAction');
+    actionBtn.textContent = status === 'Completed' ? 'Leave feedback' : 'Mark as completed';
+    openModal('detailModal');
+  }
+
+  function openRateModal(name) {
+    document.getElementById('rateUserName').textContent = name;
+    currentRating = 0;
+    document.querySelectorAll('.star-btn').forEach(s => s.classList.remove('active'));
+    document.getElementById('ratingComment').value = '';
+    openModal('rateModal');
+  }
+
+  let currentRating = 0;
+  function setRating(val) {
+    currentRating = val;
+    document.querySelectorAll('.star-btn').forEach(btn => btn.classList.toggle('active', parseInt(btn.dataset.val) <= val));
+  }
+
+  function submitRating() {
+    if (!currentRating) { showToast('Please select a star rating.'); return; }
+    closeModal('rateModal');
+    showToast('Rating submitted! Thank you for your feedback.');
+  }
+
+  document.querySelectorAll('.cal-date').forEach(d => {
+    d.addEventListener('click', function() {
+      document.querySelectorAll('.cal-date').forEach(x => x.classList.remove('selected'));
+      this.classList.add('selected');
+    });
+  });
+
+  document.querySelectorAll('.modal-overlay').forEach(m => {
+    m.addEventListener('click', function(e) { if (e.target === this) this.classList.remove('open'); });
+  });
+
+  // ── FIX: logout ─────────────────────────────────────────────────────
+  document.querySelectorAll('a[href="login.html"]').forEach(el => {
+    el.addEventListener('click', e => { e.preventDefault(); Auth.clear(); window.location.href = 'login.html'; });
+  });
+
+  // ── Load sessions from API ───────────────────────────────────────────
+  (async () => {
+    Auth.requireAuth();
+    populateSidebarUser();
+    populateTopbarAvatar();
+
+    // Populate sidebar dept
+    try { const p = await UserAPI.me(); const dept = document.querySelector('.sidebar-user-dept'); if (dept) dept.textContent = [p.department, p.yearOfStudy ? 'Y'+p.yearOfStudy : null].filter(Boolean).join(', '); } catch(_) {}
+
+    const user = Auth.getUser();
+
+    try {
+      const [upcoming, history, statAll] = await Promise.all([
+        SessionAPI.upcoming(),
+        SessionAPI.history(),
+        SessionAPI.all(),
+      ]);
+
+      const statNums = document.querySelectorAll('.stat-num');
+      if (statNums[0]) statNums[0].textContent = statAll.length;
+      if (statNums[1]) statNums[1].textContent = upcoming.length;
+
+      // Render upcoming tab
+      const upPanel = document.getElementById('tab-upcoming');
+      const sessionMain = upPanel ? upPanel.querySelector('.sessions-main') : null;
+      if (sessionMain) {
+        if (!upcoming.length) {
+          sessionMain.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-muted);font-size:0.875rem;">No upcoming sessions. <a href="browse-skills.html" style="color:var(--accent-dark);">Browse skills</a> to book one.</div>';
+        } else {
+          sessionMain.innerHTML = upcoming.map(s => {
+            const d = new Date(s.scheduledAt);
+            const isTeaching = s.myRole === 'TEACHER';
+            const partner    = isTeaching ? s.learnerName : s.teacherName;
+            const partnerId  = isTeaching ? s.learnerId   : s.teacherId;
+            const barColor   = isTeaching ? 'var(--teal)' : 'var(--accent)';
+            return `
+            <div class="session-date-group">
+              <div class="session-date-label">${d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</div>
+              <div class="session-card">
+                <div class="session-card-inner">
+                  <div class="session-color-bar" style="background:${barColor};"></div>
+                  <div class="session-card-body">
+                    <div class="session-card-top">
+                      <div class="session-card-left">
+                        <div class="avatar avatar-md ${avColor(partnerId)}">${initials(partner)}</div>
+                        <div>
+                          <div class="session-title">${s.skillTitle}</div>
+                          <div class="session-subtitle">with ${partner} &nbsp;·&nbsp; ${isTeaching ? 'Teaching' : 'Learning'}</div>
+                        </div>
+                      </div>
+                      <span class="badge badge-teal">Confirmed</span>
+                    </div>
+                    <div class="session-card-meta">
+                      <div class="session-meta-item">
+                        <svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;width:13px;height:13px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        ${d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})} · ${s.duration || '1 hr'}
+                      </div>
+                    </div>
+                    <div class="session-card-footer">
+                      <span class="session-role-badge ${isTeaching ? 'role-teaching' : 'role-learning'}">${isTeaching ? 'Teaching' : 'Learning'}</span>
+                      <div class="session-card-actions">
+                        <button class="btn btn-ghost-sm" onclick="openDetailModal('${s.skillTitle.replace(/'/g,"\\'")}','${partner.replace(/'/g,"\\'")}','${fmtDate(s.scheduledAt)}','${d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}','${s.duration||'1 hr'}','${s.meetingFormat||'TBC'}','Confirmed','${isTeaching?'teaching':'learning'}')">View details</button>
+                        <button class="btn btn-outline" style="font-size:0.8rem;padding:0.4rem 0.9rem;" onclick="cancelSessionLive(${s.id},this)">Cancel</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>`;
+          }).join('');
+        }
+      }
+
+      // Render history tab
+      const histBody = document.querySelector('#tab-history .data-table tbody');
+      if (histBody) {
+        if (!history.length) {
+          histBody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted);">No completed sessions yet.</td></tr>';
+        } else {
+          histBody.innerHTML = history.map(s => {
+            const isTeaching = s.myRole === 'TEACHER';
+            const partner    = isTeaching ? s.learnerName : s.teacherName;
+            const partnerId  = isTeaching ? s.learnerId   : s.teacherId;
+            return `<tr>
+              <td><strong>${s.skillTitle}</strong></td>
+              <td><div class="flex-center"><div class="avatar avatar-sm ${avColor(partnerId)}" style="font-size:0.65rem;">${initials(partner)}</div><span>${partner}</span></div></td>
+              <td style="color:var(--text-muted);font-size:0.82rem;">${fmtDate(s.scheduledAt)}</td>
+              <td style="color:var(--text-muted);">${s.duration || '—'}</td>
+              <td><span class="session-role-badge ${isTeaching?'role-teaching':'role-learning'}">${isTeaching?'Teaching':'Learning'}</span></td>
+              <td><span style="color:var(--accent);">${s.feedbackGiven ? '★ Done' : '—'}</span></td>
+              <td><div class="td-actions">
+                ${!s.feedbackGiven ? `<button class="btn btn-ghost-sm" onclick="openRateModal('${partner.replace(/'/g,"\\'")}')">Rate</button>` : '<span class="badge badge-gray">Reviewed</span>'}
+              </div></td>
+            </tr>`;
+          }).join('');
+        }
+      }
+    } catch(e) {
+      console.error('Sessions load error:', e);
+      showToast('Could not load sessions — is the backend running?', 'error');
+    }
+  })();
+
+  async function cancelSessionLive(id, btn) {
+    try {
+      await SessionAPI.cancel(id);
+      const card = btn.closest('.session-date-group');
+      card.style.transition = 'opacity 0.3s'; card.style.opacity = '0';
+      setTimeout(() => card.remove(), 300);
+      showToast('Session cancelled.');
+    } catch(e) { showToast(e.message, 'error'); }
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Browse Skills — SkillSwap</title>
+<link rel="stylesheet" href="dashboard-shell.css">
+<style>
+  /* ── SEARCH BAR ── */
+  .search-bar-wrap {
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: 14px; padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+    display: flex; gap: 0.75rem; align-items: flex-end; flex-wrap: wrap;
+  }
+  .search-input-group { flex: 1; min-width: 220px; }
+  .search-input-inner {
+    position: relative; display: flex; align-items: center;
+  }
+  .search-icon {
+    position: absolute; left: 12px;
+    width: 17px; height: 17px; stroke: var(--text-muted);
+    fill: none; stroke-width: 2; pointer-events: none;
+  }
+  .search-input {
+    width: 100%; padding: 0.72rem 1rem 0.72rem 2.5rem;
+    border: 1.5px solid var(--border); border-radius: 9px;
+    background: var(--surface); font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem; color: var(--text-main); outline: none;
+    transition: border-color 0.18s, background 0.18s;
+  }
+  .search-input:focus { border-color: var(--primary); background: var(--white); box-shadow: 0 0 0 3px rgba(26,26,46,0.06); }
+  .search-input::placeholder { color: var(--text-light); }
+  .filter-group { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: flex-end; }
+  .filter-select {
+    padding: 0.72rem 2rem 0.72rem 0.85rem;
+    border: 1.5px solid var(--border); border-radius: 9px;
+    background: var(--surface); font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem; color: var(--text-main); outline: none;
+    cursor: pointer; transition: border-color 0.18s;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b6878' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+  }
+  .filter-select:focus { border-color: var(--primary); background-color: var(--white); }
+  .search-btn {
+    padding: 0.72rem 1.4rem;
+    background: var(--primary); color: var(--white);
+    border: none; border-radius: 9px; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; font-size: 0.875rem; font-weight: 600;
+    transition: all 0.18s; white-space: nowrap;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .search-btn:hover { background: #0f0f22; }
+  .search-btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+  /* ── CATEGORY PILLS ── */
+  .category-pills {
+    display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem;
+    align-items: center;
+  }
+  .pill {
+    padding: 0.4rem 1rem; border-radius: 100px; font-size: 0.82rem;
+    font-weight: 500; border: 1.5px solid var(--border); cursor: pointer;
+    transition: all 0.18s; white-space: nowrap; background: var(--white);
+    color: var(--text-muted);
+  }
+  .pill:hover { border-color: var(--primary); color: var(--primary); }
+  .pill.active { background: var(--primary); color: var(--white); border-color: var(--primary); }
+  .results-meta {
+    font-size: 0.82rem; color: var(--text-muted);
+    margin-left: auto; white-space: nowrap;
+  }
+  .results-meta strong { color: var(--text-main); }
+
+  /* ── LAYOUT ── */
+  .browse-layout {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  /* ── SKILLS GRID ── */
+  .skills-list { display: flex; flex-direction: column; gap: 1rem; }
+  .skill-listing {
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: 14px; padding: 1.25rem 1.5rem;
+    cursor: pointer; transition: all 0.2s;
+    display: flex; gap: 14px;
+  }
+  .skill-listing:hover { border-color: var(--primary); box-shadow: 0 4px 20px rgba(26,26,46,0.07); transform: translateY(-1px); }
+  .skill-listing.selected { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(26,26,46,0.06); }
+  .listing-left { flex: 1; min-width: 0; }
+  .listing-header { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 0.75rem; }
+  .listing-avatar { flex-shrink: 0; }
+  .listing-header-text { flex: 1; min-width: 0; }
+  .listing-user-name { font-size: 0.875rem; font-weight: 600; color: var(--text-main); }
+  .listing-user-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 1px; }
+  .listing-skill-title { font-size: 1.05rem; font-weight: 700; color: var(--primary); margin-bottom: 4px; }
+  .listing-desc { font-size: 0.83rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 0.85rem; }
+  .listing-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 0.85rem; }
+  .listing-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 0.5rem;
+  }
+  .listing-stats { display: flex; gap: 1rem; flex-wrap: wrap; }
+  .listing-stat { font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 4px; }
+  .listing-stat svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; }
+  .listing-right { flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; gap: 0.75rem; }
+  .listing-rating { text-align: right; }
+  .rating-num { font-family: 'DM Serif Display', serif; font-size: 1.3rem; color: var(--primary); line-height: 1; }
+  .rating-stars { font-size: 0.75rem; color: var(--accent); }
+  .rating-count { font-size: 0.7rem; color: var(--text-muted); }
+
+  /* ── DETAIL PANEL ── */
+  .detail-panel {
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: 14px; position: sticky; top: 80px;
+    overflow: hidden;
+  }
+  .detail-empty {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; padding: 3rem 2rem; text-align: center;
+  }
+  .detail-empty svg { width: 40px; height: 40px; stroke: var(--border-2); fill: none; stroke-width: 1.5; margin-bottom: 1rem; }
+  .detail-empty p { font-size: 0.85rem; color: var(--text-muted); }
+
+  .detail-content { display: none; }
+  .detail-content.visible { display: block; }
+  .detail-empty.hidden { display: none; }
+
+  .detail-cover {
+    height: 80px; background: var(--primary); position: relative; overflow: hidden;
+  }
+  .detail-cover::after {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(ellipse 70% 80% at 80% 50%, rgba(232,168,56,0.2) 0%, transparent 70%);
+  }
+  .detail-body { padding: 0 1.5rem 1.5rem; }
+  .detail-profile-row {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: 1rem; margin-top: -22px; margin-bottom: 1rem;
+  }
+  .detail-profile-row .avatar { border: 3px solid var(--white); }
+  .detail-skill-name {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.35rem; color: var(--primary); margin-bottom: 2px;
+  }
+  .detail-user-line { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.75rem; }
+  .detail-user-line strong { color: var(--text-main); }
+  .detail-rating-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 0.75rem; background: var(--surface); border-radius: 10px;
+    margin-bottom: 1rem;
+  }
+  .detail-rating-big { font-family: 'DM Serif Display', serif; font-size: 1.6rem; color: var(--primary); line-height: 1; }
+  .detail-rating-right { flex: 1; }
+  .detail-stars { font-size: 0.85rem; color: var(--accent); letter-spacing: 1px; }
+  .detail-sessions-count { font-size: 0.75rem; color: var(--text-muted); }
+  .detail-section-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem; }
+  .detail-desc { font-size: 0.85rem; color: var(--text-muted); line-height: 1.7; margin-bottom: 1rem; }
+  .detail-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 1rem; }
+  .detail-info-item {
+    background: var(--surface); border-radius: 9px; padding: 0.65rem 0.85rem;
+  }
+  .detail-info-label { font-size: 0.7rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 2px; }
+  .detail-info-val { font-size: 0.85rem; font-weight: 600; color: var(--text-main); }
+  .detail-actions { display: flex; flex-direction: column; gap: 0.6rem; margin-top: 1.25rem; }
+  .btn-request {
+    width: 100%; padding: 0.85rem;
+    background: var(--primary); color: var(--white);
+    border: none; border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .btn-request:hover { background: #0f0f22; transform: translateY(-1px); }
+  .btn-request svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
+  .btn-message {
+    width: 100%; padding: 0.75rem;
+    background: transparent; color: var(--text-main);
+    border: 1.5px solid var(--border); border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.875rem; font-weight: 500; cursor: pointer;
+    transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .btn-message:hover { border-color: var(--primary); }
+  .btn-message svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; }
+  .detail-recent-reviews { margin-top: 1rem; }
+  .mini-review { padding: 0.75rem 0; border-bottom: 1px solid var(--border); font-size: 0.8rem; }
+  .mini-review:last-child { border-bottom: none; }
+  .mini-review-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; }
+  .mini-review-name { font-weight: 600; color: var(--text-main); }
+  .mini-review-stars { font-size: 0.75rem; color: var(--accent); }
+  .mini-review-text { color: var(--text-muted); line-height: 1.5; }
+
+  /* Request modal */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 500; align-items: center; justify-content: center; padding: 1rem; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--white); border-radius: 16px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
+  .modal-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--white); z-index: 1; }
+  .modal-title { font-size: 1rem; font-weight: 600; }
+  .modal-close { width: 32px; height: 32px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.1rem; color: var(--text-muted); transition: all 0.18s; }
+  .modal-close:hover { background: var(--surface-2); }
+  .modal-body { padding: 1.5rem; }
+  .modal-footer { padding: 1rem 1.5rem; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 0.75rem; }
+
+  .request-preview {
+    display: flex; align-items: center; gap: 12px;
+    padding: 1rem; background: var(--surface); border-radius: 10px; margin-bottom: 1.25rem;
+  }
+  .request-preview-info {}
+  .request-preview-skill { font-weight: 600; color: var(--text-main); }
+  .request-preview-user { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
+
+  /* Toast */
+  .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 999; background: var(--primary); color: var(--white); padding: 0.85rem 1.25rem; border-radius: 10px; font-size: 0.875rem; font-weight: 500; display: flex; align-items: center; gap: 8px; transform: translateY(80px); opacity: 0; transition: all 0.3s ease; pointer-events: none; box-shadow: 0 4px 20px rgba(26,26,46,0.2); }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast svg { width: 16px; height: 16px; stroke: var(--accent); fill: none; stroke-width: 2.5; }
+
+  /* No results */
+  .no-results { text-align: center; padding: 3rem 1rem; }
+  .no-results svg { width: 40px; height: 40px; stroke: var(--border-2); fill: none; stroke-width: 1.5; margin-bottom: 1rem; }
+  .no-results p { font-size: 0.875rem; color: var(--text-muted); }
+
+  @media (max-width: 900px) {
+    .browse-layout { grid-template-columns: 1fr; }
+    .detail-panel { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="sidebar-overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <a href="index.html" class="sidebar-logo">
+      <div class="logo-dot"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg></div>
+      SkillSwap
+    </a>
+  </div>
+  <div class="sidebar-user">
+    <div class="sidebar-avatar">AK</div>
+    <div class="sidebar-user-info">
+      <div class="sidebar-user-name">Amara Kofi</div>
+      <div class="sidebar-user-dept">Computer Science, Y3</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Main</div>
+    <a href="dashboard.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</a>
+    <a href="profile.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>My Profile</a>
+    <a href="my-skills.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>My Skills</a>
+    <div class="nav-section-label">Exchange</div>
+    <a href="browse-skills.html" class="nav-item active"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Browse Skills</a>
+    <a href="sessions.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Sessions<span class="nav-badge">2</span></a>
+    <a href="requests.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Requests<span class="nav-badge">3</span></a>
+    <a href="feedback.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>Feedback</a>
+  </nav>
+  <div class="sidebar-footer">
+    <a href="login.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Log out</a>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main-wrap">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="topbar-btn mobile-menu-btn" onclick="openSidebar()">
+        <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div>
+        <div class="topbar-title">Browse Skills</div>
+        <div class="breadcrumb"><a href="dashboard.html">Dashboard</a> / Browse Skills</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <a href="my-skills.html" class="btn btn-primary">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        List my skill
+      </a>
+    </div>
+  </header>
+
+  <main class="page-content">
+
+    <!-- SEARCH BAR -->
+    <div class="search-bar-wrap">
+      <div class="search-input-group">
+        <label class="form-label" style="margin-bottom:0.35rem;">Search skills or student names</label>
+        <div class="search-input-inner">
+          <svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" class="search-input" id="searchInput" placeholder="e.g. Python, Calculus, French…" oninput="filterSkills()">
+        </div>
+      </div>
+      <div class="filter-group">
+        <div>
+          <label class="form-label" style="margin-bottom:0.35rem;">Year of study</label>
+          <select class="filter-select" id="filterYear" onchange="filterSkills()">
+            <option value="">Any year</option>
+            <option>Year 1</option><option>Year 2</option>
+            <option>Year 3</option><option>Year 4</option><option>Postgraduate</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label" style="margin-bottom:0.35rem;">Level</label>
+          <select class="filter-select" id="filterLevel" onchange="filterSkills()">
+            <option value="">Any level</option>
+            <option>Beginner</option><option>Intermediate</option><option>Advanced</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label" style="margin-bottom:0.35rem;">Sort by</label>
+          <select class="filter-select" id="filterSort" onchange="filterSkills()">
+            <option value="rating">Top rated</option>
+            <option value="sessions">Most sessions</option>
+            <option value="newest">Newest</option>
+          </select>
+        </div>
+        <button class="search-btn" onclick="filterSkills()">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Search
+        </button>
+      </div>
+    </div>
+
+    <!-- CATEGORY PILLS -->
+    <div class="category-pills">
+      <div class="pill active" onclick="setCategory(this,'all')">All skills</div>
+      <div class="pill" onclick="setCategory(this,'programming')">Programming</div>
+      <div class="pill" onclick="setCategory(this,'design')">Design</div>
+      <div class="pill" onclick="setCategory(this,'mathematics')">Mathematics</div>
+      <div class="pill" onclick="setCategory(this,'languages')">Languages</div>
+      <div class="pill" onclick="setCategory(this,'business')">Business</div>
+      <div class="pill" onclick="setCategory(this,'science')">Science</div>
+      <div class="pill" onclick="setCategory(this,'arts')">Arts</div>
+      <div class="results-meta">Showing <strong id="resultCount">8</strong> results</div>
+    </div>
+
+    <!-- BROWSE LAYOUT -->
+    <div class="browse-layout">
+
+      <!-- LISTINGS -->
+      <div class="skills-list" id="skillsList">
+
+        <!-- Listing 1 -->
+        <div class="skill-listing" data-id="1" data-category="programming" data-year="Year 3" data-level="Intermediate" data-rating="4.9" data-sessions="12" onclick="selectListing(1)">
+          <div class="listing-left">
+            <div class="listing-header">
+              <div class="listing-avatar"><div class="avatar avatar-md av-teal">AO</div></div>
+              <div class="listing-header-text">
+                <div class="listing-user-name">Alex Omondi</div>
+                <div class="listing-user-meta">Computer Science · Year 3 · Student ID: CS/2022/087</div>
+              </div>
+            </div>
+            <div class="listing-skill-title">Python Programming</div>
+            <div class="listing-desc">Data structures, algorithms, OOP, and Pandas/NumPy for data science. Great for anyone needing Python for coursework or research projects.</div>
+            <div class="listing-tags">
+              <span class="badge badge-teal">Programming</span>
+              <span class="badge badge-gray">Intermediate</span>
+              <span class="badge badge-blue">1 hr sessions</span>
+            </div>
+            <div class="listing-footer">
+              <div class="listing-stats">
+                <div class="listing-stat"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>12 sessions done</div>
+                <div class="listing-stat"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>8 students taught</div>
+                <div class="listing-stat"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Weekday evenings</div>
+              </div>
+              <button class="btn btn-primary" onclick="event.stopPropagation();openRequestModal(1)" style="font-size:0.8rem;padding:0.45rem 1rem;">Request session</button>
+            </div>
+          </div>
+          <div class="listing-right">
+            <div class="listing-rating">
+              <div class="rating-num">4.9</div>
+              <div class="rating-stars">★★★★★</div>
+              <div class="rating-count">12 reviews</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Listing 2 -->
+        <div class="skill-listing" data-id="2" data-category="design" data-year="Year 2" data-level="Intermediate" data-rating="4.8" data-sessions="8" onclick="selectListing(2)">
+          <div class="listing-left">
+            <div class="listing-header">
+              <div class="listing-avatar"><div class="avatar avatar-md av-amber">MJ</div></div>
+              <div class="listing-header-text">
+                <div class="listing-user-name">Maya Juma</div>
+                <div class="listing-user-meta">Design & Media · Year 2</div>
+              </div>
+            </div>
+            <div class="listing-skill-title">Figma & UI/UX Design</div>
+            <div class="listing-desc">Wireframing, component design, prototyping, and design systems. Perfect for developers or anyone building products who want to improve their design thinking.</div>
+            <div class="listing-tags">
+              <span class="badge badge-amber">Design</span>
+              <span class="badge badge-gray">Intermediate</span>
+              <span class="badge badge-blue">1.5 hr sessions</span>
+            </div>
+            <div class="listing-footer">
+              <div class="listing-stats">
+                <div class="listing-stat"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>8 sessions done</div>
+                <div class="listing-stat"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Weekends</div>
+              </div>
+              <button class="btn btn-primary" onclick="event.stopPropagation();openRequestModal(2)" style="font-size:0.8rem;padding:0.45rem 1rem;">Request session</button>
+            </div>
+          </div>
+          <div class="listing-right">
+            <div class="listing-rating">
+              <div class="rating-num">4.8</div>
+              <div class="rating-stars">★★★★★</div>
+              <div class="rating-count">8 reviews</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Listing 3 -->
+        <div class="skill-listing" data-id="3" data-category="mathematics" data-year="Year 4" data-level="Advanced" data-rating="4.7" data-sessions="15" onclick="selectListing(3)">
+          <div class="listing-left">
+            <div class="listing-header">
+              <div class="listing-avatar"><div class="avatar avatar-md av-coral">TN</div></div>
+              <div class="listing-header-text">
+                <div class="listing-user-name">Tom Ndege</div>
+                <div class="listing-user-meta">Mathematics · Year 4</div>
+              </div>
+            </div>
+            <div class="listing-skill-title">Calculus & Linear Algebra</div>
+            <div class="listing-desc">Differential equations, eigenvalues and eigenvectors, matrix operations, integration techniques. Covers MTH 201 & MTH 301 coursework thoroughly.</div>
+            <div class="listing-tags">
+              <span class="badge badge-coral">Mathematics</span>
+              <span class="badge badge-gray">Advanced</span>
+              <span class="badge badge-blue">1 hr sessions</span>
+            </div>
+            <div class="listing-footer">
+              <div class="listing-stats">
+                <div class="listing-stat"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>15 sessions done</div>
+                <div class="listing-stat"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Mon, Wed, Fri</div>
+              </div>
+              <button class="btn btn-primary" onclick="event.stopPropagation();openRequestModal(3)" style="font-size:0.8rem;padding:0.45rem 1rem;">Request session</button>
+            </div>
+          </div>
+          <div class="listing-right">
+            <div class="listing-rating">
+              <div class="rating-num">4.7</div>
+              <div class="rating-stars">★★★★☆</div>
+              <div class="rating-count">15 reviews</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Listing 4 -->
+        <div class="skill-listing" data-id="4" data-category="languages" data-year="Year 3" data-level="Beginner" data-rating="5.0" data-sessions="6" onclick="selectListing(4)">
+          <div class="listing-left">
+            <div class="listing-header">
+              <div class="listing-avatar"><div class="avatar avatar-md av-purple">BW</div></div>
+              <div class="listing-header-text">
+                <div class="listing-user-name">Beatrice Wanjiku</div>
+                <div class="listing-user-meta">Communication · Year 3</div>
+              </div>
+            </div>
+            <div class="listing-skill-title">French Language</div>
+            <div class="listing-desc">Conversational French, grammar foundations, writing, and reading comprehension. Suitable for complete beginners up to A2 level. Fun, interactive sessions.</div>
+            <div class="listing-tags">
+              <span class="badge badge-purple">Languages</span>
+              <span class="badge badge-gray">Beginner</span>
+              <span class="badge badge-blue">1 hr sessions</span>
+            </div>
+            <div class="listing-footer">
+              <div class="listing-stats">
+                <div class="listing-stat"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>6 sessions done</div>
+                <div class="listing-stat"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Flexible timing</div>
+              </div>
+              <button class="btn btn-primary" onclick="event.stopPropagation();openRequestModal(4)" style="font-size:0.8rem;padding:0.45rem 1rem;">Request session</button>
+            </div>
+          </div>
+          <div class="listing-right">
+            <div class="listing-rating">
+              <div class="rating-num">5.0</div>
+              <div class="rating-stars">★★★★★</div>
+              <div class="rating-count">6 reviews</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Listing 5 -->
+        <div class="skill-listing" data-id="5" data-category="business" data-year="Year 2" data-level="Beginner" data-rating="4.6" data-sessions="9" onclick="selectListing(5)">
+          <div class="listing-left">
+            <div class="listing-header">
+              <div class="listing-avatar"><div class="avatar avatar-md av-blue">DS</div></div>
+              <div class="listing-header-text">
+                <div class="listing-user-name">Daniel Simiyu</div>
+                <div class="listing-user-meta">Business Administration · Year 2</div>
+              </div>
+            </div>
+            <div class="listing-skill-title">Financial Accounting</div>
+            <div class="listing-desc">Double-entry bookkeeping, balance sheets, income statements, and cash flow analysis. Practical, case-study based sessions with real examples.</div>
+            <div class="listing-tags">
+              <span class="badge badge-blue">Business</span>
+              <span class="badge badge-gray">Beginner–Mid</span>
+              <span class="badge badge-blue">1.5 hr sessions</span>
+            </div>
+            <div class="listing-footer">
+              <div class="listing-stats">
+                <div class="listing-stat"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>9 sessions done</div>
+                <div class="listing-stat"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Tues & Thurs</div>
+              </div>
+              <button class="btn btn-primary" onclick="event.stopPropagation();openRequestModal(5)" style="font-size:0.8rem;padding:0.45rem 1rem;">Request session</button>
+            </div>
+          </div>
+          <div class="listing-right">
+            <div class="listing-rating">
+              <div class="rating-num">4.6</div>
+              <div class="rating-stars">★★★★☆</div>
+              <div class="rating-count">9 reviews</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Listing 6 -->
+        <div class="skill-listing" data-id="6" data-category="science" data-year="Year 3" data-level="Intermediate" data-rating="4.9" data-sessions="11" onclick="selectListing(6)">
+          <div class="listing-left">
+            <div class="listing-header">
+              <div class="listing-avatar"><div class="avatar avatar-md av-green">FO</div></div>
+              <div class="listing-header-text">
+                <div class="listing-user-name">Faith Otieno</div>
+                <div class="listing-user-meta">Biology · Year 3</div>
+              </div>
+            </div>
+            <div class="listing-skill-title">Cell Biology & Genetics</div>
+            <div class="listing-desc">DNA replication, transcription & translation, Mendelian genetics, cell division (mitosis/meiosis). Diagrams, concept maps, and practice questions included.</div>
+            <div class="listing-tags">
+              <span class="badge badge-green">Science</span>
+              <span class="badge badge-gray">Intermediate</span>
+              <span class="badge badge-blue">1 hr sessions</span>
+            </div>
+            <div class="listing-footer">
+              <div class="listing-stats">
+                <div class="listing-stat"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>11 sessions done</div>
+                <div class="listing-stat"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Weekends mornings</div>
+              </div>
+              <button class="btn btn-primary" onclick="event.stopPropagation();openRequestModal(6)" style="font-size:0.8rem;padding:0.45rem 1rem;">Request session</button>
+            </div>
+          </div>
+          <div class="listing-right">
+            <div class="listing-rating">
+              <div class="rating-num">4.9</div>
+              <div class="rating-stars">★★★★★</div>
+              <div class="rating-count">11 reviews</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Listing 7 -->
+        <div class="skill-listing" data-id="7" data-category="programming" data-year="Year 4" data-level="Advanced" data-rating="4.7" data-sessions="7" onclick="selectListing(7)">
+          <div class="listing-left">
+            <div class="listing-header">
+              <div class="listing-avatar"><div class="avatar avatar-md" style="background:#fcebeb;color:#a32d2d;">KM</div></div>
+              <div class="listing-header-text">
+                <div class="listing-user-name">Kevin Maina</div>
+                <div class="listing-user-meta">Software Engineering · Year 4</div>
+              </div>
+            </div>
+            <div class="listing-skill-title">JavaScript & React</div>
+            <div class="listing-desc">ES6+, async/await, React hooks, state management with Context. Build real projects from scratch. Hands-on coding sessions with GitHub portfolio building.</div>
+            <div class="listing-tags">
+              <span class="badge badge-teal">Programming</span>
+              <span class="badge badge-gray">Advanced</span>
+              <span class="badge badge-blue">2 hr sessions</span>
+            </div>
+            <div class="listing-footer">
+              <div class="listing-stats">
+                <div class="listing-stat"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>7 sessions done</div>
+                <div class="listing-stat"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Sat afternoons</div>
+              </div>
+              <button class="btn btn-primary" onclick="event.stopPropagation();openRequestModal(7)" style="font-size:0.8rem;padding:0.45rem 1rem;">Request session</button>
+            </div>
+          </div>
+          <div class="listing-right">
+            <div class="listing-rating">
+              <div class="rating-num">4.7</div>
+              <div class="rating-stars">★★★★☆</div>
+              <div class="rating-count">7 reviews</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Listing 8 -->
+        <div class="skill-listing" data-id="8" data-category="arts" data-year="Year 2" data-level="Beginner" data-rating="4.5" data-sessions="4" onclick="selectListing(8)">
+          <div class="listing-left">
+            <div class="listing-header">
+              <div class="listing-avatar"><div class="avatar avatar-md" style="background:#faeeda;color:#633806;">RK</div></div>
+              <div class="listing-header-text">
+                <div class="listing-user-name">Rachel Kamau</div>
+                <div class="listing-user-meta">Fine Arts · Year 2</div>
+              </div>
+            </div>
+            <div class="listing-skill-title">Public Speaking & Presentation</div>
+            <div class="listing-desc">Voice projection, body language, structuring arguments, and managing stage fright. Practice through recorded mock presentations with detailed feedback.</div>
+            <div class="listing-tags">
+              <span class="badge badge-amber">Arts</span>
+              <span class="badge badge-gray">Beginner</span>
+              <span class="badge badge-blue">1 hr sessions</span>
+            </div>
+            <div class="listing-footer">
+              <div class="listing-stats">
+                <div class="listing-stat"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>4 sessions done</div>
+                <div class="listing-stat"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Flexible</div>
+              </div>
+              <button class="btn btn-primary" onclick="event.stopPropagation();openRequestModal(8)" style="font-size:0.8rem;padding:0.45rem 1rem;">Request session</button>
+            </div>
+          </div>
+          <div class="listing-right">
+            <div class="listing-rating">
+              <div class="rating-num">4.5</div>
+              <div class="rating-stars">★★★★☆</div>
+              <div class="rating-count">4 reviews</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="no-results" id="noResults" style="display:none;">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <p>No skills matched your search. Try different keywords or clear filters.</p>
+        </div>
+      </div>
+
+      <!-- DETAIL PANEL -->
+      <div class="detail-panel">
+        <div class="detail-empty" id="detailEmpty">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <p>Click on a skill listing to see full details and send a session request.</p>
+        </div>
+        <div class="detail-content" id="detailContent">
+          <div class="detail-cover"></div>
+          <div class="detail-body">
+            <div class="detail-profile-row">
+              <div class="avatar avatar-md av-teal" id="detailAvatar" style="border:3px solid var(--white);">??</div>
+              <span class="badge badge-teal" id="detailCategory">Category</span>
+            </div>
+            <div class="detail-skill-name" id="detailSkillName">Skill Name</div>
+            <div class="detail-user-line">Offered by <strong id="detailUserName">Student</strong> · <span id="detailUserMeta">Dept · Year</span></div>
+            <div class="detail-rating-row">
+              <div class="detail-rating-big" id="detailRating">4.9</div>
+              <div class="detail-rating-right">
+                <div class="detail-stars" id="detailStars">★★★★★</div>
+                <div class="detail-sessions-count" id="detailSessionsCount">12 sessions completed</div>
+              </div>
+            </div>
+            <div class="detail-section-label">About this skill</div>
+            <div class="detail-desc" id="detailDesc">Description goes here.</div>
+            <div class="detail-info-grid">
+              <div class="detail-info-item"><div class="detail-info-label">Level</div><div class="detail-info-val" id="detailLevel">Intermediate</div></div>
+              <div class="detail-info-item"><div class="detail-info-label">Duration</div><div class="detail-info-val" id="detailDuration">1 hr</div></div>
+              <div class="detail-info-item"><div class="detail-info-label">Sessions done</div><div class="detail-info-val" id="detailSessions">12</div></div>
+              <div class="detail-info-item"><div class="detail-info-label">Availability</div><div class="detail-info-val" id="detailAvail">Weekday evenings</div></div>
+            </div>
+            <div class="divider"></div>
+            <div class="detail-section-label">Recent reviews</div>
+            <div class="detail-recent-reviews" id="detailReviews"></div>
+            <div class="detail-actions">
+              <button class="btn-request" id="detailRequestBtn" onclick="openRequestModal(currentSelected)">
+                <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Request a session
+              </button>
+              <button class="btn-message">
+                <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                Send a message first
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- REQUEST SESSION MODAL -->
+<div class="modal-overlay" id="requestModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Request a session</div>
+      <div class="modal-close" onclick="closeModal('requestModal')">✕</div>
+    </div>
+    <div class="modal-body">
+      <div class="request-preview">
+        <div class="avatar avatar-sm av-teal" id="modalAvatar">??</div>
+        <div class="request-preview-info">
+          <div class="request-preview-skill" id="modalSkillName">Skill</div>
+          <div class="request-preview-user">with <span id="modalUserName">Student</span></div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Preferred date *</label>
+        <input type="date" class="form-input" id="reqDate">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Preferred time *</label>
+          <input type="time" class="form-input" id="reqTime">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Duration</label>
+          <select class="form-input" id="reqDuration">
+            <option>30 minutes</option><option selected>1 hour</option>
+            <option>1.5 hours</option><option>2 hours</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">What do you want to focus on? *</label>
+        <textarea class="form-input" id="reqMessage" rows="3" placeholder="Describe what topics or problems you'd like help with in this session…"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Meeting format</label>
+        <select class="form-input" id="reqFormat">
+          <option>In-person (campus)</option>
+          <option>Online (Google Meet)</option>
+          <option>Online (Zoom)</option>
+          <option>Either works for me</option>
+        </select>
+      </div>
+      <div style="background:var(--accent-light);border-radius:9px;padding:0.85rem 1rem;font-size:0.82rem;color:var(--accent-dark);display:flex;gap:8px;align-items:flex-start;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        The student will receive your request and confirm or suggest an alternative time. You'll be notified once they respond.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('requestModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitRequest()">
+        <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Send request
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/></svg>
+  <span id="toastMsg">Request sent!</span>
+</div>
+
+<script>
+const listings = {
+  1: { name:'Python Programming', user:'Alex Omondi', meta:'Computer Science · Year 3', avatar:'AO', avatarClass:'av-teal', category:'Programming', categoryBadge:'badge-teal', rating:'4.9', stars:'★★★★★', sessions:'12', level:'Intermediate', duration:'1 hr', avail:'Weekday evenings', desc:'Data structures, algorithms, OOP, and Pandas/NumPy for data science. Great for anyone needing Python for coursework or research projects. Sessions involve live coding, problem solving and Q&A.', reviews:[{name:'James O.',stars:'★★★★★',text:'Alex made Python OOP crystal clear. Very patient and uses great real-world examples.'},{name:'Faith O.',stars:'★★★★★',text:'Brilliant session. Covered Pandas groupby operations in a way that finally clicked for me.'}]},
+  2: { name:'Figma & UI/UX Design', user:'Maya Juma', meta:'Design & Media · Year 2', avatar:'MJ', avatarClass:'av-amber', category:'Design', categoryBadge:'badge-amber', rating:'4.8', stars:'★★★★★', sessions:'8', level:'Intermediate', duration:'1.5 hr', avail:'Weekends', desc:'Wireframing, component design, prototyping, and design systems in Figma. Perfect for developers who want to improve their design skills or anyone building a product.', reviews:[{name:'Kevin M.',stars:'★★★★★',text:'Maya taught me design systems in just two sessions. My interfaces look so much better now.'},{name:'Daniel S.',stars:'★★★★☆',text:'Very knowledgeable and engaging teacher. The prototyping session was especially helpful.'}]},
+  3: { name:'Calculus & Linear Algebra', user:'Tom Ndege', meta:'Mathematics · Year 4', avatar:'TN', avatarClass:'av-coral', category:'Mathematics', categoryBadge:'badge-coral', rating:'4.7', stars:'★★★★☆', sessions:'15', level:'Advanced', duration:'1 hr', avail:'Mon, Wed, Fri', desc:'Differential equations, eigenvalues and eigenvectors, matrix operations and integration techniques. Covers MTH 201 & MTH 301 thoroughly with past paper practice.', reviews:[{name:'Beatrice W.',stars:'★★★★★',text:'Tom explains abstract maths in such an intuitive way. Finally understand eigenvectors!'},{name:'Rachel K.',stars:'★★★★☆',text:'Good command of the subject. Could slow down a bit but always happy to repeat.'}]},
+  4: { name:'French Language', user:'Beatrice Wanjiku', meta:'Communication · Year 3', avatar:'BW', avatarClass:'av-purple', category:'Languages', categoryBadge:'badge-purple', rating:'5.0', stars:'★★★★★', sessions:'6', level:'Beginner', duration:'1 hr', avail:'Flexible', desc:'Conversational French, grammar foundations, writing and reading comprehension. Fun, relaxed sessions suitable for complete beginners up to A2 level. Includes vocabulary flashcards.', reviews:[{name:'Amara K.',stars:'★★★★★',text:'Best French sessions I\'ve had. Beatrice makes it fun and her patience is incredible.'},{name:'Alex O.',stars:'★★★★★',text:'After 3 sessions I could hold a basic French conversation. Highly recommend!'}]},
+  5: { name:'Financial Accounting', user:'Daniel Simiyu', meta:'Business Administration · Year 2', avatar:'DS', avatarClass:'av-blue', category:'Business', categoryBadge:'badge-blue', rating:'4.6', stars:'★★★★☆', sessions:'9', level:'Beginner', duration:'1.5 hr', avail:'Tues & Thurs', desc:'Double-entry bookkeeping, balance sheets, income statements, and cash flow analysis. Practical case-study based approach with real company examples. Great for BUS101 preparation.', reviews:[{name:'Tom N.',stars:'★★★★★',text:'Daniel\'s approach of using real company data made accounting so much more relatable.'},{name:'Faith O.',stars:'★★★★☆',text:'Very structured sessions. He explains the logic behind every accounting entry.'}]},
+  6: { name:'Cell Biology & Genetics', user:'Faith Otieno', meta:'Biology · Year 3', avatar:'FO', avatarClass:'av-green', category:'Science', categoryBadge:'badge-green', rating:'4.9', stars:'★★★★★', sessions:'11', level:'Intermediate', duration:'1 hr', avail:'Weekend mornings', desc:'DNA replication, transcription & translation, Mendelian genetics, mitosis and meiosis. Concept maps, annotated diagrams, and practice exam questions provided every session.', reviews:[{name:'Maya J.',stars:'★★★★★',text:'Faith\'s diagrams and memory techniques are incredible. Aced my genetics exam!'},{name:'Daniel S.',stars:'★★★★★',text:'Super organised and thorough. Always sends notes after each session too.'}]},
+  7: { name:'JavaScript & React', user:'Kevin Maina', meta:'Software Engineering · Year 4', avatar:'KM', avatarClass:'', category:'Programming', categoryBadge:'badge-teal', rating:'4.7', stars:'★★★★☆', sessions:'7', level:'Advanced', duration:'2 hr', avail:'Saturday afternoons', desc:'ES6+, async/await, React hooks, Context API and state management. Build real projects from scratch with GitHub portfolio building included. Hands-on, project-based learning.', reviews:[{name:'Alex O.',stars:'★★★★★',text:'Kevin\'s React session helped me finally understand hooks. The project-based approach works!'},{name:'James O.',stars:'★★★★☆',text:'Very deep knowledge of JS. The sessions run long but packed with useful content.'}]},
+  8: { name:'Public Speaking & Presentation', user:'Rachel Kamau', meta:'Fine Arts · Year 2', avatar:'RK', avatarClass:'', category:'Arts', categoryBadge:'badge-amber', rating:'4.5', stars:'★★★★☆', sessions:'4', level:'Beginner', duration:'1 hr', avail:'Flexible', desc:'Voice projection, body language, structuring arguments, and managing stage fright. Sessions include mock presentations recorded for feedback. Perfect for seminar prep or job interviews.', reviews:[{name:'Tom N.',stars:'★★★★★',text:'Rachel\'s feedback was so specific and actionable. My presentation got a much higher mark!'},{name:'Beatrice W.',stars:'★★★★☆',text:'Fun and encouraging coach. The mock presentation recording was genuinely eye-opening.'}]},
+};
+
+let currentSelected = null;
+let activeCategory = 'all';
+
+function openSidebar() { document.getElementById('sidebar').classList.add('open'); document.getElementById('overlay').classList.add('open'); }
+function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); }
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function setCategory(el, cat) {
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  activeCategory = cat;
+  filterSkills();
+}
+
+function filterSkills() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const year = document.getElementById('filterYear').value;
+  const level = document.getElementById('filterLevel').value;
+  const sort = document.getElementById('filterSort').value;
+  const cards = Array.from(document.querySelectorAll('.skill-listing'));
+  let visible = 0;
+
+  cards.forEach(card => {
+    const id = parseInt(card.dataset.id);
+    const d = listings[id];
+    const matchCat = activeCategory === 'all' || card.dataset.category === activeCategory;
+    const matchQ = !q || d.name.toLowerCase().includes(q) || d.user.toLowerCase().includes(q) || d.desc.toLowerCase().includes(q);
+    const matchYear = !year || card.dataset.year === year;
+    const matchLevel = !level || card.dataset.level === level;
+    const show = matchCat && matchQ && matchYear && matchLevel;
+    card.style.display = show ? 'flex' : 'none';
+    if (show) visible++;
+  });
+
+  document.getElementById('resultCount').textContent = visible;
+  document.getElementById('noResults').style.display = visible === 0 ? 'block' : 'none';
+}
+
+function selectListing(id) {
+  document.querySelectorAll('.skill-listing').forEach(l => l.classList.remove('selected'));
+  document.querySelector(`.skill-listing[data-id="${id}"]`).classList.add('selected');
+  currentSelected = id;
+  const d = listings[id];
+  document.getElementById('detailEmpty').classList.add('hidden');
+  document.getElementById('detailContent').classList.add('visible');
+
+  const av = document.getElementById('detailAvatar');
+  av.textContent = d.avatar;
+  av.className = 'avatar avatar-md ' + (d.avatarClass || '');
+  if (!d.avatarClass) av.style.cssText = 'background:#e6f1fb;color:#185fa5;border:3px solid var(--white);';
+  else av.style.cssText = 'border:3px solid var(--white);';
+
+  document.getElementById('detailSkillName').textContent = d.name;
+  document.getElementById('detailUserName').textContent = d.user;
+  document.getElementById('detailUserMeta').textContent = d.meta;
+  document.getElementById('detailCategory').textContent = d.category;
+  document.getElementById('detailCategory').className = 'badge ' + d.categoryBadge;
+  document.getElementById('detailRating').textContent = d.rating;
+  document.getElementById('detailStars').textContent = d.stars;
+  document.getElementById('detailSessionsCount').textContent = d.sessions + ' sessions completed';
+  document.getElementById('detailDesc').textContent = d.desc;
+  document.getElementById('detailLevel').textContent = d.level;
+  document.getElementById('detailDuration').textContent = d.duration;
+  document.getElementById('detailSessions').textContent = d.sessions;
+  document.getElementById('detailAvail').textContent = d.avail;
+
+  const reviewsEl = document.getElementById('detailReviews');
+  reviewsEl.innerHTML = d.reviews.map(r => `
+    <div class="mini-review">
+      <div class="mini-review-top"><span class="mini-review-name">${r.name}</span><span class="mini-review-stars">${r.stars}</span></div>
+      <div class="mini-review-text">${r.text}</div>
+    </div>`).join('');
+}
+
+function openRequestModal(id) {
+  currentSelected = id;
+  const d = listings[id];
+  const av = document.getElementById('modalAvatar');
+  av.textContent = d.avatar;
+  av.className = 'avatar avatar-sm ' + (d.avatarClass || '');
+  if (!d.avatarClass) av.style.cssText = 'background:#e6f1fb;color:#185fa5;';
+  else av.style.cssText = '';
+  document.getElementById('modalSkillName').textContent = d.name;
+  document.getElementById('modalUserName').textContent = d.user;
+  // Set min date to today
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('reqDate').min = today;
+  openModal('requestModal');
+}
+
+function submitRequest() {
+  const date = document.getElementById('reqDate').value;
+  const time = document.getElementById('reqTime').value;
+  const msg = document.getElementById('reqMessage').value.trim();
+  if (!date || !time || !msg) {
+    showToast('Please fill in all required fields.');
+    return;
+  }
+  closeModal('requestModal');
+  showToast('Session request sent! You\'ll be notified when they respond.');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+document.getElementById('requestModal').addEventListener('click', function(e) { if (e.target === this) closeModal('requestModal'); });
+</script>
+</body>
+</html>
+<script src="api.js"></script>
+<script>
+// Override submitRequest to call real API
+window.submitRequest = async function() {
+  const date   = document.getElementById('reqDate').value;
+  const time   = document.getElementById('reqTime').value;
+  const msg    = document.getElementById('reqMessage').value.trim();
+  const format = document.getElementById('reqFormat').value;
+  const dur    = document.getElementById('reqDuration').value;
+
+  if (!date || !time || !msg) { showToast('Please fill in all required fields.','error'); return; }
+
+  const formatMap = { 'In-person (campus)':'IN_PERSON', 'Online (Google Meet)':'ONLINE_GOOGLE_MEET', 'Online (Zoom)':'ONLINE_ZOOM', 'Either works for me':'FLEXIBLE' };
+
+  try {
+    await RequestAPI.send({
+      skillListingId:   currentSelected,
+      proposedDateTime: `${date}T${time}:00`,
+      duration:         dur,
+      focusMessage:     msg,
+      meetingFormat:    formatMap[format] || 'FLEXIBLE',
+    });
+    closeModal('requestModal');
+    showToast("Session request sent! You'll be notified when they respond.");
+  } catch(e) { showToast(e.message, 'error'); }
+};
+
+// Load real listings on page open
+(async () => {
+  Auth.requireAuth();
+  populateSidebarUser();
+  populateTopbarAvatar();
+  try {
+    allListings = await SkillAPI.browse();
+    renderListings(allListings);
+  } catch(e) { console.error('Browse load error:', e); }
+})();
+
+let allListings = [];
+
+function renderListings(list) {
+  const container = document.getElementById('skillsList');
+  document.getElementById('resultCount').textContent = list.length;
+  const noRes = document.getElementById('noResults');
+
+  if (!list.length) {
+    container.querySelectorAll('.skill-listing').forEach(el => el.remove());
+    noRes.style.display = 'block'; return;
+  }
+  noRes.style.display = 'none';
+
+  const catBadge = { PROGRAMMING:'badge-teal', DESIGN:'badge-amber', MATHEMATICS:'badge-coral', LANGUAGES:'badge-purple', BUSINESS:'badge-blue', SCIENCE:'badge-green', ARTS:'badge-amber', OTHER:'badge-gray' };
+
+  container.innerHTML = list.map(l => `
+    <div class="skill-listing" data-id="${l.id}" data-category="${l.category.toLowerCase()}"
+         data-level="${l.level}" data-rating="${l.averageRating}" data-sessions="${l.totalSessions}"
+         onclick="selectListing(${l.id})" style="cursor:pointer;">
+      <div class="listing-left">
+        <div class="listing-header">
+          <div class="listing-avatar"><div class="avatar avatar-md ${avColor(l.ownerId)}">${initials(l.ownerName)}</div></div>
+          <div class="listing-header-text">
+            <div class="listing-user-name">${l.ownerName}</div>
+            <div class="listing-user-meta">${l.ownerDepartment || '—'} · ${l.ownerYear || '—'}</div>
+          </div>
+        </div>
+        <div class="listing-skill-title">${l.title}</div>
+        <div class="listing-desc">${l.description}</div>
+        <div class="listing-tags">
+          <span class="badge ${catBadge[l.category]||'badge-gray'}">${cap(l.category)}</span>
+          <span class="badge badge-gray">${cap(l.level)}</span>
+          ${l.sessionDuration ? `<span class="badge badge-blue">${l.sessionDuration}</span>` : ''}
+        </div>
+        <div class="listing-footer">
+          <div class="listing-stats">
+            <div class="listing-stat"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;width:13px;height:13px;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${l.totalSessions} sessions</div>
+            ${l.availability ? `<div class="listing-stat"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;width:13px;height:13px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${l.availability}</div>` : ''}
+          </div>
+          <button class="btn btn-primary" style="font-size:0.8rem;padding:0.45rem 1rem;"
+            onclick="event.stopPropagation();openRequestModal(${l.id})">Request session</button>
+        </div>
+      </div>
+      <div class="listing-right">
+        <div class="listing-rating">
+          <div class="rating-num">${l.averageRating?.toFixed(1) || '—'}</div>
+          <div class="rating-stars">${stars(l.averageRating)}</div>
+          <div class="rating-count">${l.totalSessions} sessions</div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+// Wire filter function to real data
+window.filterSkills = function() {
+  const q    = document.getElementById('searchInput').value.toLowerCase();
+  const year = document.getElementById('filterYear').value;
+  const lvl  = document.getElementById('filterLevel').value;
+  let filtered = allListings.filter(l => {
+    const matchQ   = !q || l.title.toLowerCase().includes(q) || l.ownerName.toLowerCase().includes(q) || l.description.toLowerCase().includes(q);
+    const matchLvl = !lvl || l.level === lvl.toUpperCase();
+    const matchCat = activeCategory === 'all' || l.category.toLowerCase() === activeCategory;
+    return matchQ && matchLvl && matchCat;
+  });
+
+  const sort = document.getElementById('filterSort').value;
+  if (sort === 'rating')   filtered.sort((a,b) => b.averageRating - a.averageRating);
+  if (sort === 'sessions') filtered.sort((a,b) => b.totalSessions - a.totalSessions);
+  if (sort === 'newest')   filtered.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  renderListings(filtered);
+};
+
+window.openRequestModal = function(id) {
+  currentSelected = id;
+  const l = allListings.find(x => x.id === id);
+  if (!l) return;
+  const av = document.getElementById('modalAvatar');
+  av.textContent = initials(l.ownerName);
+  av.className = `avatar avatar-sm ${avColor(l.ownerId)}`;
+  document.getElementById('modalSkillName').textContent = l.title;
+  document.getElementById('modalUserName').textContent  = l.ownerName;
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('reqDate').min = today;
+  openModal('requestModal');
+};
+
+window.selectListing = function(id) {
+  document.querySelectorAll('.skill-listing').forEach(l => l.classList.remove('selected'));
+  const card = document.querySelector(`.skill-listing[data-id="${id}"]`);
+  if (card) card.classList.add('selected');
+  currentSelected = id;
+  const l = allListings.find(x => x.id === id);
+  if (!l) return;
+  document.getElementById('detailEmpty').classList.add('hidden');
+  document.getElementById('detailContent').classList.add('visible');
+  document.getElementById('detailSkillName').textContent  = l.title;
+  document.getElementById('detailUserName').textContent   = l.ownerName;
+  document.getElementById('detailUserMeta').textContent   = `${l.ownerDepartment||'—'} · ${l.ownerYear||'—'}`;
+  document.getElementById('detailRating').textContent     = l.averageRating?.toFixed(1) || '—';
+  document.getElementById('detailStars').textContent      = stars(l.averageRating);
+  document.getElementById('detailSessionsCount').textContent = `${l.totalSessions} sessions completed`;
+  document.getElementById('detailDesc').textContent       = l.description;
+  document.getElementById('detailLevel').textContent      = cap(l.level);
+  document.getElementById('detailDuration').textContent   = l.sessionDuration || '—';
+  document.getElementById('detailSessions').textContent   = l.totalSessions;
+  document.getElementById('detailAvail').textContent      = l.availability || '—';
+  const av = document.getElementById('detailAvatar');
+  av.textContent = initials(l.ownerName);
+  av.className   = `avatar avatar-md ${avColor(l.ownerId)}`;
+  document.getElementById('detailReviews').innerHTML = '<div class="mini-review"><div class="mini-review-text" style="color:var(--text-muted);">Reviews load after sessions are completed.</div></div>';
+};
+</script>

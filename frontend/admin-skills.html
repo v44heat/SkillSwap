@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skill Listings — SkillSwap Admin</title>
+<link rel="stylesheet" href="admin-shell.css">
+<style>
+  .filter-bar { background:var(--white);border:1px solid var(--border);border-radius:14px;padding:1rem 1.5rem;display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:1.5rem; }
+  .search-wrap { flex:1;min-width:200px;position:relative; }
+  .search-icon { position:absolute;left:11px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--text-muted);fill:none;stroke-width:2;pointer-events:none; }
+  .search-input { width:100%;padding:0.65rem 1rem 0.65rem 2.3rem;border:1.5px solid var(--border);border-radius:9px;background:var(--surface);font-family:'DM Sans',sans-serif;font-size:0.875rem;color:var(--text-main);outline:none;transition:border-color 0.15s; }
+  .search-input:focus { border-color:var(--admin-accent);background:var(--white); }
+  .filter-select { padding:0.65rem 2rem 0.65rem 0.85rem;border:1.5px solid var(--border);border-radius:9px;background:var(--surface);font-family:'DM Sans',sans-serif;font-size:0.845rem;color:var(--text-muted);outline:none;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b6878' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center; }
+
+  /* Skill listing card for moderation */
+  .skill-mod-card { background:var(--white);border:1px solid var(--border);border-radius:14px;padding:1.25rem 1.5rem;margin-bottom:1rem;transition:all 0.2s; }
+  .skill-mod-card:hover { box-shadow:0 3px 14px rgba(26,26,46,0.07); }
+  .skill-mod-card.flagged { border-color:rgba(216,90,48,0.35);background:rgba(250,236,231,0.25); }
+  .smc-top { display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:0.85rem;flex-wrap:wrap; }
+  .smc-left { display:flex;align-items:center;gap:12px; }
+  .smc-title { font-size:1rem;font-weight:700;color:var(--primary);margin-bottom:2px; }
+  .smc-meta { font-size:0.78rem;color:var(--text-muted); }
+  .smc-desc { font-size:0.84rem;color:var(--text-muted);line-height:1.65;margin-bottom:0.9rem; }
+  .smc-footer { display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.6rem; }
+  .flag-reason { background:var(--coral-light);color:var(--coral);border:1px solid rgba(216,90,48,0.2);border-radius:8px;padding:0.5rem 0.85rem;font-size:0.8rem;display:flex;align-items:center;gap:6px;margin-bottom:0.85rem; }
+  .flag-reason svg { width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;flex-shrink:0; }
+
+  /* Tabs */
+  .tabs { display:flex;gap:0;background:var(--white);border:1px solid var(--border);border-radius:10px;padding:4px;width:fit-content;margin-bottom:1.75rem; }
+  .tab { padding:0.5rem 1.2rem;border-radius:7px;font-size:0.875rem;font-weight:500;color:var(--text-muted);cursor:pointer;transition:all 0.18s;border:none;background:transparent;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px; }
+  .tab:hover { color:var(--text-main); }
+  .tab.active { background:var(--primary);color:var(--white); }
+  .tab-badge { font-size:0.68rem;font-weight:700;padding:1px 6px;border-radius:100px;line-height:1.4; }
+  .tab.active .tab-badge { background:rgba(255,255,255,0.2);color:var(--white); }
+  .tab:not(.active) .tab-badge { background:var(--coral-light);color:var(--coral); }
+  .tab-panel { display:none; }
+  .tab-panel.active { display:block; }
+</style>
+</head>
+<body>
+
+<div class="sidebar-overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <a href="index.html" class="sidebar-logo"><div class="logo-dot"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg></div>SkillSwap</a>
+    <div class="admin-tag">Admin Panel</div>
+  </div>
+  <div class="sidebar-admin-info"><div class="admin-avatar">SA</div><div><div class="admin-name">Super Admin</div><div class="admin-role">System Administrator</div></div></div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Overview</div>
+    <a href="admin-dashboard.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</a>
+    <a href="admin-users.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Users<span class="nav-badge">5</span></a>
+    <div class="nav-section-label">Content</div>
+    <a href="admin-skills.html" class="nav-item active"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Skill Listings<span class="nav-badge warn">2</span></a>
+    <a href="admin-sessions.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Sessions</a>
+    <a href="admin-feedback.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Feedback</a>
+    <div class="nav-section-label">System</div>
+    <a href="admin-reports.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Reports</a>
+  </nav>
+  <div class="sidebar-footer"><a href="admin-login.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sign out</a></div>
+</aside>
+
+<!-- MAIN -->
+<div class="main-wrap">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="topbar-btn mobile-menu-btn" onclick="openSidebar()"><svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+      <div><div class="topbar-title">Skill Listings</div><div class="breadcrumb"><a href="admin-dashboard.html">Dashboard</a> / Skill Listings</div></div>
+    </div>
+  </header>
+
+  <main class="page-content">
+
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-card-top"><div class="stat-icon" style="background:var(--admin-light);"><svg viewBox="0 0 24 24" style="stroke:var(--admin-accent);fill:none;stroke-width:2;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div><span class="stat-delta delta-up">+8 this week</span></div><div class="stat-num">94</div><div class="stat-label">Total active listings</div></div>
+      <div class="stat-card"><div class="stat-card-top"><div class="stat-icon" style="background:var(--coral-light);"><svg viewBox="0 0 24 24" style="stroke:var(--coral);fill:none;stroke-width:2;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg></div><span class="stat-delta delta-down">Needs review</span></div><div class="stat-num">2</div><div class="stat-label">Flagged listings</div></div>
+      <div class="stat-card"><div class="stat-card-top"><div class="stat-icon" style="background:var(--surface-2);"><svg viewBox="0 0 24 24" style="stroke:var(--text-muted);fill:none;stroke-width:2;"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></div><span class="stat-delta delta-neutral">All time</span></div><div class="stat-num">7</div><div class="stat-label">Listings removed</div></div>
+      <div class="stat-card"><div class="stat-card-top"><div class="stat-icon" style="background:var(--teal-light);"><svg viewBox="0 0 24 24" style="stroke:#0f6e56;fill:none;stroke-width:2;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><span class="stat-delta delta-up">+31 this week</span></div><div class="stat-num">412</div><div class="stat-label">Total sessions from listings</div></div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('flagged',this)">Flagged <span class="tab-badge">2</span></button>
+      <button class="tab" onclick="switchTab('all',this)">All listings <span class="tab-badge" style="background:var(--surface-2);color:var(--text-muted);">94</span></button>
+    </div>
+
+    <!-- FLAGGED TAB -->
+    <div class="tab-panel active" id="tab-flagged">
+
+      <div style="background:var(--coral-light);border:1px solid rgba(216,90,48,0.25);border-radius:10px;padding:0.85rem 1rem;display:flex;align-items:center;gap:10px;margin-bottom:1.5rem;font-size:0.84rem;color:var(--coral);">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+        These listings have been reported by students and require admin review. Remove any that violate platform rules.
+      </div>
+
+      <!-- Flagged card 1 -->
+      <div class="skill-mod-card flagged" id="flag1">
+        <div class="smc-top">
+          <div class="smc-left">
+            <div class="avatar avatar-md" style="background:#fcebeb;color:#a32d2d;">??</div>
+            <div>
+              <div class="smc-title">Easy Money Fast — Guaranteed!</div>
+              <div class="smc-meta">Posted by <strong>spam_user_94</strong> · <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="b4c7c4d5d98d80f4dadbc0c6d1d5d89ad7dbd9">[email&#160;protected]</a> · 2 days ago</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start;">
+            <span class="badge badge-red">Flagged ×2</span>
+            <span class="badge badge-gray">Suspended user</span>
+          </div>
+        </div>
+        <div class="flag-reason">
+          <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+          Reported reasons: <strong>Spam/Fraudulent content</strong> by 2 users — "This has nothing to do with skills" and "Looks like a scam."
+        </div>
+        <div class="smc-desc">"I will teach you how to make KSH 50,000 per week doing nothing. Contact me immediately for my secret method. Not available anywhere else. Act fast! Limited slots only!!!"</div>
+        <div class="smc-footer">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <span class="badge badge-gray">Category: Other</span>
+            <span class="badge badge-gray">0 sessions</span>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-outline btn-sm" onclick="clearFlag('flag1')">Clear flag (keep listing)</button>
+            <button class="btn btn-warn btn-sm" onclick="warnUser('flag1')">Warn user</button>
+            <button class="btn btn-danger btn-sm" onclick="removeListing('flag1', 'Easy Money Fast')">Remove listing</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Flagged card 2 -->
+      <div class="skill-mod-card flagged" id="flag2">
+        <div class="smc-top">
+          <div class="smc-left">
+            <div class="avatar avatar-md av-blue">BO</div>
+            <div>
+              <div class="smc-title">Python Programming — Advanced</div>
+              <div class="smc-meta">Posted by <strong>Brian Otieno</strong> · <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="4220302b232c6c2d362b272c2d0221232f3237316c23216c2927">[email&#160;protected]</a> · 5 days ago</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start;">
+            <span class="badge badge-amber">Flagged ×1</span>
+            <span class="badge badge-teal">Active user</span>
+          </div>
+        </div>
+        <div class="flag-reason">
+          <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+          Reported reason: <strong>Duplicate listing</strong> — "This is identical to Amara Kofi's Python listing."
+        </div>
+        <div class="smc-desc">"I teach Python programming — data structures, algorithms, Pandas, NumPy. Great for CS students or anyone doing data science coursework. Available weekday evenings."</div>
+        <div class="smc-footer">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <span class="badge badge-teal">Programming</span>
+            <span class="badge badge-gray">0 sessions</span>
+            <span class="badge badge-gray">Intermediate</span>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-outline btn-sm" onclick="clearFlag('flag2')">Clear flag (keep listing)</button>
+            <button class="btn btn-warn btn-sm" onclick="warnUser('flag2')">Warn user</button>
+            <button class="btn btn-danger btn-sm" onclick="removeListing('flag2', 'Brian\'s Python listing')">Remove listing</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALL LISTINGS TAB -->
+    <div class="tab-panel" id="tab-all">
+      <div class="filter-bar">
+        <div class="search-wrap">
+          <svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" class="search-input" placeholder="Search skill name or author…">
+        </div>
+        <select class="filter-select"><option>All categories</option><option>Programming</option><option>Design</option><option>Mathematics</option><option>Languages</option><option>Business</option><option>Science</option></select>
+        <select class="filter-select"><option>All statuses</option><option>Active</option><option>Paused</option><option>Flagged</option></select>
+      </div>
+      <div class="card">
+        <table class="data-table">
+          <thead><tr><th>Skill</th><th>Owner</th><th>Category</th><th>Sessions</th><th>Rating</th><th>Status</th><th>Listed</th><th>Actions</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Python Programming</strong></td><td><div class="flex-center"><div class="avatar avatar-sm av-teal" style="font-size:0.62rem;">AK</div>Amara Kofi</div></td><td><span class="badge badge-teal">Programming</span></td><td>12</td><td><span style="color:var(--accent);">★</span> 4.9</td><td><span class="badge badge-teal">Active</span></td><td style="color:var(--text-muted);font-size:0.8rem;">Feb 2025</td><td><div class="td-actions"><button class="btn btn-outline btn-sm">View</button><button class="btn btn-danger btn-sm" onclick="showToast('Listing removed.')">Remove</button></div></td></tr>
+            <tr><td><strong>Figma & UI/UX Design</strong></td><td><div class="flex-center"><div class="avatar avatar-sm av-amber" style="font-size:0.62rem;">MJ</div>Maya Juma</div></td><td><span class="badge badge-amber">Design</span></td><td>8</td><td><span style="color:var(--accent);">★</span> 4.8</td><td><span class="badge badge-teal">Active</span></td><td style="color:var(--text-muted);font-size:0.8rem;">Mar 2025</td><td><div class="td-actions"><button class="btn btn-outline btn-sm">View</button><button class="btn btn-danger btn-sm" onclick="showToast('Listing removed.')">Remove</button></div></td></tr>
+            <tr><td><strong>Calculus & Linear Algebra</strong></td><td><div class="flex-center"><div class="avatar avatar-sm av-coral" style="font-size:0.62rem;">TN</div>Tom Ndege</div></td><td><span class="badge badge-coral">Mathematics</span></td><td>15</td><td><span style="color:var(--accent);">★</span> 4.7</td><td><span class="badge badge-teal">Active</span></td><td style="color:var(--text-muted);font-size:0.8rem;">Jan 2025</td><td><div class="td-actions"><button class="btn btn-outline btn-sm">View</button><button class="btn btn-danger btn-sm" onclick="showToast('Listing removed.')">Remove</button></div></td></tr>
+            <tr><td><strong>French Language</strong></td><td><div class="flex-center"><div class="avatar avatar-sm av-purple" style="font-size:0.62rem;">BW</div>Beatrice Wanjiku</div></td><td><span class="badge badge-purple">Languages</span></td><td>6</td><td><span style="color:var(--accent);">★</span> 5.0</td><td><span class="badge badge-teal">Active</span></td><td style="color:var(--text-muted);font-size:0.8rem;">Feb 2025</td><td><div class="td-actions"><button class="btn btn-outline btn-sm">View</button><button class="btn btn-danger btn-sm" onclick="showToast('Listing removed.')">Remove</button></div></td></tr>
+            <tr><td><strong>Financial Accounting</strong></td><td><div class="flex-center"><div class="avatar avatar-sm av-blue" style="font-size:0.62rem;">DS</div>Daniel Simiyu</div></td><td><span class="badge badge-blue">Business</span></td><td>9</td><td><span style="color:var(--accent);">★</span> 4.6</td><td><span class="badge badge-teal">Active</span></td><td style="color:var(--text-muted);font-size:0.8rem;">Apr 2025</td><td><div class="td-actions"><button class="btn btn-outline btn-sm">View</button><button class="btn btn-danger btn-sm" onclick="showToast('Listing removed.')">Remove</button></div></td></tr>
+            <tr><td><strong>Cell Biology & Genetics</strong></td><td><div class="flex-center"><div class="avatar avatar-sm av-green" style="font-size:0.62rem;">FO</div>Faith Otieno</div></td><td><span class="badge badge-green">Science</span></td><td>11</td><td><span style="color:var(--accent);">★</span> 4.9</td><td><span class="badge badge-teal">Active</span></td><td style="color:var(--text-muted);font-size:0.8rem;">Mar 2025</td><td><div class="td-actions"><button class="btn btn-outline btn-sm">View</button><button class="btn btn-danger btn-sm" onclick="showToast('Listing removed.')">Remove</button></div></td></tr>
+            <tr><td><strong>Data Analysis</strong></td><td><div class="flex-center"><div class="avatar avatar-sm av-teal" style="font-size:0.62rem;">AK</div>Amara Kofi</div></td><td><span class="badge badge-amber">Analytics</span></td><td>5</td><td><span style="color:var(--accent);">★</span> 4.8</td><td><span class="badge badge-teal">Active</span></td><td style="color:var(--text-muted);font-size:0.8rem;">Feb 2025</td><td><div class="td-actions"><button class="btn btn-outline btn-sm">View</button><button class="btn btn-danger btn-sm" onclick="showToast('Listing removed.')">Remove</button></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/></svg><span id="toastMsg">Done!</span></div>
+
+
+<script src="api.js"></script>
+<script>
+  function openSidebar() { document.getElementById('sidebar').classList.add('open'); document.getElementById('overlay').classList.add('open'); }
+  function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); }
+  function showToast(msg) { const t = document.getElementById('toast'); document.getElementById('toastMsg').textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3500); }
+  function switchTab(name, btn) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active'); document.getElementById('tab-' + name).classList.add('active');
+  }
+
+  // ── FIX: logout ─────────────────────────────────────────────────────
+  document.querySelectorAll('a[href="admin-login.html"], a[href="login.html"]').forEach(el => {
+    el.addEventListener('click', e => { e.preventDefault(); Auth.clear(); window.location.href = 'admin-login.html'; });
+  });
+
+  (async () => {
+    Auth.requireAuth();
+    Auth.requireAdmin();
+
+    const user = Auth.getUser();
+    const adminNameEl = document.querySelector('.admin-name');
+    const adminAvatarEl = document.querySelector('.admin-avatar');
+    if (adminNameEl && user) adminNameEl.textContent = user.name || 'Admin';
+    if (adminAvatarEl && user) adminAvatarEl.textContent = initials(user.name || 'Admin');
+
+    try {
+      const [flagged, allListings] = await Promise.all([
+        AdminAPI.flaggedListings(),
+        AdminAPI.listings(),
+      ]);
+
+      const statNums = document.querySelectorAll('.stat-num');
+      if (statNums[0]) statNums[0].textContent = allListings.length;
+      if (statNums[1]) statNums[1].textContent = flagged.length;
+
+      // Update tab badge
+      const badges = document.querySelectorAll('.tab-badge');
+      if (badges[0]) badges[0].textContent = flagged.length;
+
+      // Render flagged tab — FIX: use userId/teacherName not ownerId/ownerName
+      const flagTab = document.getElementById('tab-flagged');
+      flagTab.querySelectorAll('.skill-mod-card').forEach(c => c.remove());
+
+      if (!flagged.length) {
+        const ok = document.createElement('div');
+        ok.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-muted);font-size:.875rem;">✅ No flagged listings — everything looks clean.</div>';
+        flagTab.appendChild(ok);
+      } else {
+        flagged.forEach(l => {
+          const div = document.createElement('div');
+          div.className = 'skill-mod-card';
+          div.id = `flag-live-${l.id}`;
+          div.innerHTML = `
+            <div class="smc-header">
+              <div class="smc-left">
+                <div class="avatar avatar-sm ${avColor(l.userId)}" style="font-size:0.65rem;">${initials(l.teacherName)}</div>
+                <div>
+                  <div class="smc-title">${l.title}</div>
+                  <div class="smc-meta">${l.teacherName} · ${cap(l.category)}</div>
+                </div>
+              </div>
+              <span class="badge badge-coral">Flagged</span>
+            </div>
+            ${l.flagReason ? `<div class="flag-reason" style="padding:.5rem .75rem;background:var(--coral-light);border-radius:7px;font-size:.8rem;color:#993c1d;margin:.5rem 0;display:flex;gap:6px;align-items:center;">⚠️ Flag reason: <strong>${l.flagReason}</strong></div>` : ''}
+            <div class="smc-desc">${l.description}</div>
+            <div class="smc-footer">
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <span class="badge badge-gray">${cap(l.category)}</span>
+                <span class="badge badge-gray">${l.totalSessions ?? 0} sessions</span>
+              </div>
+              <div style="display:flex;gap:6px;">
+                <button class="btn btn-outline btn-sm" onclick="liveClearFlag(${l.id})">Clear flag</button>
+                <button class="btn btn-danger btn-sm" onclick="liveRemoveListing(${l.id},'${l.title.replace(/'/g,"\\'")}')">Remove listing</button>
+              </div>
+            </div>`;
+          flagTab.appendChild(div);
+        });
+      }
+
+      // Render all listings table — FIX: use userId/teacherName
+      const allTabBody = document.querySelector('#tab-all .data-table tbody');
+      if (allTabBody) {
+        if (!allListings.length) {
+          allTabBody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:1.5rem;color:var(--text-muted);">No listings yet.</td></tr>';
+        } else {
+          allTabBody.innerHTML = allListings.map(l => `
+            <tr>
+              <td><strong>${l.title}</strong></td>
+              <td><div class="flex-center"><div class="avatar avatar-sm ${avColor(l.userId)}" style="font-size:0.62rem;">${initials(l.teacherName)}</div>${l.teacherName}</div></td>
+              <td><span class="badge ${categoryBadge(l.category)}">${cap(l.category)}</span></td>
+              <td>${l.totalSessions ?? 0}</td>
+              <td><span style="color:var(--accent);">★</span> ${l.averageRating > 0 ? Number(l.averageRating).toFixed(1) : '—'}</td>
+              <td><span class="badge ${l.isFlagged ? 'badge-coral' : l.isActive ? 'badge-teal' : 'badge-gray'}">${l.isFlagged ? 'Flagged' : l.isActive ? 'Active' : 'Paused'}</span></td>
+              <td style="color:var(--text-muted);font-size:0.8rem;">${fmtDate(l.createdAt)}</td>
+              <td><div class="td-actions">
+                ${l.isFlagged ? `<button class="btn btn-outline btn-sm" onclick="liveClearFlag(${l.id})">Clear</button>` : ''}
+                <button class="btn btn-danger btn-sm" onclick="liveRemoveListing(${l.id},'${l.title.replace(/'/g,"\\'")}')">Remove</button>
+              </div></td>
+            </tr>`).join('');
+        }
+      }
+    } catch(e) { console.error('Admin skills error:', e); showToast('Could not load data.'); }
+  })();
+
+  async function liveClearFlag(id) {
+    try {
+      await AdminAPI.clearFlag(id);
+      document.getElementById(`flag-live-${id}`)?.remove();
+      showToast('Flag cleared. Listing is active again.');
+    } catch(e) { showToast(e.message, 'error'); }
+  }
+
+  async function liveRemoveListing(id, name) {
+    try {
+      await AdminAPI.removeListing(id);
+      document.getElementById(`flag-live-${id}`)?.remove();
+      showToast(`"${name}" removed from the platform.`);
+      setTimeout(() => location.reload(), 1000);
+    } catch(e) { showToast(e.message, 'error'); }
+  }
+</script>
+</body>
+</html>

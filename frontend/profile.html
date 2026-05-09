@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Profile — SkillSwap</title>
+<link rel="stylesheet" href="dashboard-shell.css">
+<style>
+  /* Profile Hero */
+  .profile-hero {
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: 16px; overflow: hidden; margin-bottom: 1.5rem;
+  }
+  .profile-cover {
+    height: 130px; position: relative;
+    background: linear-gradient(135deg, var(--primary) 0%, #2a2a55 100%);
+    overflow: hidden;
+  }
+  .profile-cover::after {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 60% 80% at 80% 50%, rgba(232,168,56,0.2) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 60% at 20% 80%, rgba(29,158,117,0.12) 0%, transparent 70%);
+  }
+  .cover-edit-btn {
+    position: absolute; top: 12px; right: 12px; z-index: 1;
+    background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.8); border-radius: 7px;
+    padding: 0.35rem 0.75rem; font-size: 0.75rem; font-weight: 500;
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+    display: flex; align-items: center; gap: 5px; transition: all 0.18s;
+  }
+  .cover-edit-btn:hover { background: rgba(255,255,255,0.2); color: var(--white); }
+
+  .profile-body { padding: 0 1.75rem 1.75rem; }
+  .profile-avatar-row {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: 1rem; margin-top: -28px; margin-bottom: 1rem; flex-wrap: wrap;
+  }
+  .profile-avatar-wrap { position: relative; }
+  .profile-avatar {
+    width: 72px; height: 72px; border-radius: 50%;
+    background: rgba(232,168,56,0.2); border: 4px solid var(--white);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.5rem; color: var(--accent-dark);
+  }
+  .avatar-edit-dot {
+    position: absolute; bottom: 2px; right: 2px;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--primary); border: 2px solid var(--white);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .avatar-edit-dot svg { width: 10px; height: 10px; stroke: var(--white); fill: none; stroke-width: 2.5; }
+  .profile-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; padding-top: 2rem; }
+
+  .profile-name {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.5rem; color: var(--primary); margin-bottom: 3px;
+  }
+  .profile-dept { color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.75rem; }
+  .profile-meta-row {
+    display: flex; gap: 1.25rem; flex-wrap: wrap; margin-bottom: 1rem;
+  }
+  .profile-meta-item {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 0.8rem; color: var(--text-muted);
+  }
+  .profile-meta-item svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
+  .profile-bio { font-size: 0.9rem; color: var(--text-muted); line-height: 1.7; max-width: 620px; }
+
+  /* Stats Strip */
+  .profile-stats-strip {
+    display: flex; gap: 0; border-top: 1px solid var(--border); margin: 1.25rem -1.75rem 0;
+  }
+  .pstat {
+    flex: 1; padding: 1rem; text-align: center;
+    border-right: 1px solid var(--border);
+  }
+  .pstat:last-child { border-right: none; }
+  .pstat-num {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.4rem; color: var(--primary); line-height: 1;
+  }
+  .pstat-label { font-size: 0.72rem; color: var(--text-muted); font-weight: 500; margin-top: 3px; }
+
+  /* Edit form modal overlay */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.4); z-index: 500;
+    align-items: center; justify-content: center; padding: 1rem;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--white); border-radius: 16px;
+    width: 100%; max-width: 560px;
+    max-height: 90vh; overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  }
+  .modal-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--white); z-index: 1;
+  }
+  .modal-title { font-size: 1rem; font-weight: 600; color: var(--text-main); }
+  .modal-close {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--surface); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 1.1rem; color: var(--text-muted);
+    transition: all 0.18s;
+  }
+  .modal-close:hover { background: var(--surface-2); color: var(--text-main); }
+  .modal-body { padding: 1.5rem; }
+  .modal-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: flex-end; gap: 0.75rem;
+  }
+
+  /* Skills section */
+  .skills-section { display: flex; flex-direction: column; gap: 1.25rem; }
+  .skill-listing-card {
+    border: 1px solid var(--border); border-radius: 12px; padding: 1.1rem 1.25rem;
+    display: flex; gap: 12px; align-items: flex-start;
+    transition: all 0.18s;
+  }
+  .skill-listing-card:hover { border-color: var(--border-2); box-shadow: 0 2px 12px rgba(26,26,46,0.05); }
+  .skill-listing-icon {
+    width: 42px; height: 42px; border-radius: 11px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .skill-listing-icon svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
+  .skill-listing-body { flex: 1; min-width: 0; }
+  .skill-listing-name { font-size: 0.95rem; font-weight: 600; color: var(--text-main); margin-bottom: 3px; }
+  .skill-listing-desc { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 0.6rem; }
+  .skill-listing-meta { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
+  .skill-listing-actions { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; flex-shrink: 0; }
+
+  /* Rating breakdown */
+  .rating-row { display: flex; align-items: center; gap: 10px; margin-bottom: 0.5rem; }
+  .rating-label { font-size: 0.78rem; color: var(--text-muted); width: 14px; text-align: right; flex-shrink: 0; }
+  .rating-bar-wrap { flex: 1; height: 7px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+  .rating-bar-fill { height: 100%; border-radius: 4px; background: var(--accent); }
+  .rating-count { font-size: 0.75rem; color: var(--text-muted); width: 26px; flex-shrink: 0; }
+
+  /* Feedback card */
+  .feedback-card {
+    border: 1px solid var(--border); border-radius: 12px;
+    padding: 1rem 1.25rem; margin-bottom: 0.75rem;
+  }
+  .feedback-card:last-child { margin-bottom: 0; }
+  .feedback-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 0.6rem; }
+  .feedback-author { display: flex; align-items: center; gap: 8px; }
+  .feedback-name { font-size: 0.875rem; font-weight: 600; color: var(--text-main); }
+  .feedback-date { font-size: 0.75rem; color: var(--text-muted); }
+  .feedback-stars { color: var(--accent); font-size: 0.85rem; flex-shrink: 0; }
+  .feedback-text { font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; }
+  .feedback-skill { margin-top: 0.5rem; }
+</style>
+</head>
+<body>
+
+<div class="sidebar-overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <a href="index.html" class="sidebar-logo">
+      <div class="logo-dot"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg></div>
+      SkillSwap
+    </a>
+  </div>
+  <div class="sidebar-user">
+    <div class="sidebar-avatar">AK</div>
+    <div class="sidebar-user-info">
+      <div class="sidebar-user-name">Amara Kofi</div>
+      <div class="sidebar-user-dept">Computer Science, Y3</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Main</div>
+    <a href="dashboard.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</a>
+    <a href="profile.html" class="nav-item active"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>My Profile</a>
+    <a href="my-skills.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>My Skills</a>
+    <div class="nav-section-label">Exchange</div>
+    <a href="browse-skills.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Browse Skills</a>
+    <a href="sessions.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Sessions<span class="nav-badge">2</span></a>
+    <a href="requests.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Requests<span class="nav-badge">3</span></a>
+    <a href="feedback.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>Feedback</a>
+  </nav>
+  <div class="sidebar-footer">
+    <a href="login.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Log out</a>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main-wrap">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="topbar-btn mobile-menu-btn" onclick="openSidebar()">
+        <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div>
+        <div class="topbar-title">My Profile</div>
+        <div class="breadcrumb"><a href="dashboard.html">Dashboard</a> / Profile</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-primary" onclick="openModal('editProfileModal')">
+        <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Edit Profile
+      </button>
+    </div>
+  </header>
+
+  <main class="page-content">
+
+    <!-- PROFILE HERO CARD -->
+    <div class="profile-hero">
+      <div class="profile-cover">
+        <button class="cover-edit-btn">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          Change cover
+        </button>
+      </div>
+      <div class="profile-body">
+        <div class="profile-avatar-row">
+          <div class="profile-avatar-wrap">
+            <div class="profile-avatar">AK</div>
+            <div class="avatar-edit-dot">
+              <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </div>
+          </div>
+          <div class="profile-actions">
+            <button class="btn btn-outline" onclick="openModal('editProfileModal')">
+              <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Edit profile
+            </button>
+            <button class="btn btn-ghost-sm">Share profile</button>
+          </div>
+        </div>
+        <div class="profile-name" id="displayName">Amara Kofi</div>
+        <div class="profile-dept" id="displayDept">Computer Science · Year 3</div>
+        <div class="profile-meta-row">
+          <div class="profile-meta-item">
+            <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="51303c3023307f3a3e37381132303c2124227f30327f3a34">[email&#160;protected]</a>
+          </div>
+          <div class="profile-meta-item">
+            <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            Nairobi Campus
+          </div>
+          <div class="profile-meta-item">
+            <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Joined February 2025
+          </div>
+          <div class="profile-meta-item">
+            <span class="stars">★★★★★</span>
+            <strong style="color:var(--text-main);">4.8</strong>
+            <span>(12 reviews)</span>
+          </div>
+        </div>
+        <p class="profile-bio" id="displayBio">
+          Final year Computer Science student passionate about data science and machine learning. I enjoy breaking down complex algorithms into easy-to-understand concepts. Outside coding, I'm learning French and would love to exchange for tech skills!
+        </p>
+        <div class="profile-stats-strip">
+          <div class="pstat"><div class="pstat-num">14</div><div class="pstat-label">Sessions taught</div></div>
+          <div class="pstat"><div class="pstat-num">8</div><div class="pstat-label">Skills learned</div></div>
+          <div class="pstat"><div class="pstat-num">23</div><div class="pstat-label">Connections</div></div>
+          <div class="pstat"><div class="pstat-num">4.8★</div><div class="pstat-label">Avg. rating</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TWO COLUMN LAYOUT -->
+    <div class="grid-2">
+
+      <!-- LEFT: Skills & Ratings -->
+      <div style="display:flex;flex-direction:column;gap:1.25rem;">
+
+        <!-- Skills I teach -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Skills I teach</div>
+            <a href="my-skills.html" class="card-action">Manage</a>
+          </div>
+          <div class="card-body" style="padding-top:0.5rem;">
+            <div class="skills-section">
+              <div class="skill-listing-card">
+                <div class="skill-listing-icon" style="background:var(--teal-light);color:#0f6e56;">
+                  <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                </div>
+                <div class="skill-listing-body">
+                  <div class="skill-listing-name">Python Programming</div>
+                  <div class="skill-listing-desc">Data structures, algorithms, Pandas & NumPy. Ideal for CS or data-related coursework.</div>
+                  <div class="skill-listing-meta">
+                    <span class="badge badge-teal">Programming</span>
+                    <span class="badge badge-gray">12 sessions</span>
+                    <span style="font-size:0.75rem;color:var(--text-muted);">★ 4.9</span>
+                  </div>
+                </div>
+              </div>
+              <div class="skill-listing-card">
+                <div class="skill-listing-icon" style="background:var(--accent-light);color:var(--accent-dark);">
+                  <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                </div>
+                <div class="skill-listing-body">
+                  <div class="skill-listing-name">Data Analysis</div>
+                  <div class="skill-listing-desc">Excel, Pandas, visualization with Matplotlib. Great for business or science students.</div>
+                  <div class="skill-listing-meta">
+                    <span class="badge badge-amber">Analytics</span>
+                    <span class="badge badge-gray">5 sessions</span>
+                    <span style="font-size:0.75rem;color:var(--text-muted);">★ 4.8</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Skills I want to learn -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Skills I want to learn</div>
+            <button class="card-action" onclick="openModal('editProfileModal')">Edit</button>
+          </div>
+          <div class="card-body">
+            <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+              <span class="badge badge-purple">UI/UX Design</span>
+              <span class="badge badge-coral">French Language</span>
+              <span class="badge badge-blue">Financial Accounting</span>
+              <span class="badge badge-green">Cell Biology</span>
+              <span class="badge badge-gray">Public Speaking</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Ratings & Feedback -->
+      <div style="display:flex;flex-direction:column;gap:1.25rem;">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Ratings & feedback</div>
+          </div>
+          <div class="card-body">
+            <!-- Rating summary -->
+            <div style="display:flex;align-items:center;gap:1.5rem;margin-bottom:1.25rem;padding-bottom:1.25rem;border-bottom:1px solid var(--border);">
+              <div style="text-align:center;flex-shrink:0;">
+                <div style="font-family:'DM Serif Display',serif;font-size:3rem;line-height:1;color:var(--primary);">4.8</div>
+                <div style="color:var(--accent);font-size:1rem;letter-spacing:2px;">★★★★★</div>
+                <div style="font-size:0.75rem;color:var(--text-muted);margin-top:3px;">12 reviews</div>
+              </div>
+              <div style="flex:1;">
+                <div class="rating-row"><div class="rating-label">5</div><div class="rating-bar-wrap"><div class="rating-bar-fill" style="width:75%;"></div></div><div class="rating-count">9</div></div>
+                <div class="rating-row"><div class="rating-label">4</div><div class="rating-bar-wrap"><div class="rating-bar-fill" style="width:17%;background:#c4862a;"></div></div><div class="rating-count">2</div></div>
+                <div class="rating-row"><div class="rating-label">3</div><div class="rating-bar-wrap"><div class="rating-bar-fill" style="width:8%;background:#d85a30;"></div></div><div class="rating-count">1</div></div>
+                <div class="rating-row"><div class="rating-label">2</div><div class="rating-bar-wrap"><div class="rating-bar-fill" style="width:0%;"></div></div><div class="rating-count">0</div></div>
+                <div class="rating-row"><div class="rating-label">1</div><div class="rating-bar-wrap"><div class="rating-bar-fill" style="width:0%;"></div></div><div class="rating-count">0</div></div>
+              </div>
+            </div>
+            <!-- Feedback items -->
+            <div class="feedback-card">
+              <div class="feedback-top">
+                <div class="feedback-author">
+                  <div class="avatar avatar-sm av-amber">DS</div>
+                  <div>
+                    <div class="feedback-name">Daniel Simiyu</div>
+                    <div class="feedback-date">March 25, 2026</div>
+                  </div>
+                </div>
+                <div class="feedback-stars">★★★★★</div>
+              </div>
+              <div class="feedback-text">"Amara is an exceptional teacher. She explained Pandas groupby operations in a way that finally made it click for me. Very patient and thorough!"</div>
+              <div class="feedback-skill mt-1"><span class="badge badge-teal">Python Programming</span></div>
+            </div>
+            <div class="feedback-card">
+              <div class="feedback-top">
+                <div class="feedback-author">
+                  <div class="avatar avatar-sm av-coral">JO</div>
+                  <div>
+                    <div class="feedback-name">James Odhiambo</div>
+                    <div class="feedback-date">March 20, 2026</div>
+                  </div>
+                </div>
+                <div class="feedback-stars">★★★★★</div>
+              </div>
+              <div class="feedback-text">"Really helpful session! Amara broke down data visualization step by step and shared really useful resources. Would definitely book again."</div>
+              <div class="feedback-skill mt-1"><span class="badge badge-amber">Data Analysis</span></div>
+            </div>
+            <div class="feedback-card">
+              <div class="feedback-top">
+                <div class="feedback-author">
+                  <div class="avatar avatar-sm av-purple">FO</div>
+                  <div>
+                    <div class="feedback-name">Faith Otieno</div>
+                    <div class="feedback-date">March 15, 2026</div>
+                  </div>
+                </div>
+                <div class="feedback-stars">★★★★☆</div>
+              </div>
+              <div class="feedback-text">"Good session overall. Covered Python OOP concepts well. Sometimes went a bit fast but always willing to repeat."</div>
+              <div class="feedback-skill mt-1"><span class="badge badge-teal">Python Programming</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- EDIT PROFILE MODAL -->
+<div class="modal-overlay" id="editProfileModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Edit Profile</div>
+      <div class="modal-close" onclick="closeModal('editProfileModal')">✕</div>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">First name</label>
+          <input type="text" class="form-input" id="editFirstName" value="Amara">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Last name</label>
+          <input type="text" class="form-input" id="editLastName" value="Kofi">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Campus email</label>
+        <input type="email" class="form-input" value="amara.kofi@campus.ac.ke" disabled style="opacity:0.6;cursor:not-allowed;">
+        <div class="form-hint">Email cannot be changed. Contact admin for help.</div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Department</label>
+          <select class="form-input" id="editDept">
+            <option selected>Computer Science & Engineering</option>
+            <option>Business Administration</option>
+            <option>Mathematics & Statistics</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Year of study</label>
+          <select class="form-input" id="editYear">
+            <option>Year 1</option><option>Year 2</option>
+            <option selected>Year 3</option><option>Year 4</option><option>Postgraduate</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Bio</label>
+        <textarea class="form-input" id="editBio" rows="4">Final year Computer Science student passionate about data science and machine learning. I enjoy breaking down complex algorithms into easy-to-understand concepts. Outside coding, I'm learning French and would love to exchange for tech skills!</textarea>
+        <div class="form-hint">Max 300 characters. Keep it friendly and informative.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Skills I want to learn</label>
+        <input type="text" class="form-input" value="UI/UX Design, French Language, Financial Accounting" placeholder="Comma-separated">
+        <div class="form-hint">Add skills you're looking to learn from others.</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('editProfileModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveProfile()">Save changes</button>
+    </div>
+  </div>
+</div>
+
+
+<script src="api.js"></script>
+<script>
+(async () => {
+  Auth.requireAuth();
+  populateSidebarUser();
+  populateTopbarAvatar();
+
+  // ── FIX: wire all logout links ──────────────────────────────────────
+  document.querySelectorAll('a[href="login.html"]').forEach(el => {
+    el.addEventListener('click', e => { e.preventDefault(); Auth.clear(); window.location.href = 'login.html'; });
+  });
+
+  try {
+    const [profile, mySkills, received] = await Promise.all([
+      UserAPI.me(),
+      SkillAPI.myListings(),
+      FeedbackAPI.received(),
+    ]);
+
+    // ── Fill profile display fields ──────────────────────────────────
+    const nameEl = document.getElementById('displayName');
+    const deptEl = document.getElementById('displayDept');
+    const bioEl  = document.getElementById('displayBio');
+    if (nameEl) nameEl.textContent = `${profile.firstName} ${profile.lastName}`;
+    if (deptEl) deptEl.textContent =
+      [profile.department, profile.yearOfStudy].filter(Boolean).join(' · ') || '—';
+    if (bioEl && profile.bio) bioEl.textContent = profile.bio;
+
+    // ── Email ────────────────────────────────────────────────────────
+    const emailEl = document.getElementById('displayEmail');
+    if (emailEl) emailEl.textContent = profile.email;
+
+    // ── Joined date ──────────────────────────────────────────────────
+    const joinedEl = document.getElementById('displayJoined');
+    if (joinedEl && profile.createdAt) {
+      joinedEl.textContent = 'Joined ' + new Date(profile.createdAt)
+        .toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+    }
+
+    // ── Stats strip ──────────────────────────────────────────────────
+    // FIX: use querySelectorAll('.pstat-num') — index 0 = sessions, index 3 = rating
+    const pstats = document.querySelectorAll('.pstat-num');
+    if (pstats[0]) pstats[0].textContent = profile.totalSessions ?? 0;
+    if (pstats[3]) pstats[3].textContent =
+      (Number(profile.averageRating ?? 0).toFixed(1)) + '★';
+    // index 1 = skills taught count
+    if (pstats[1]) pstats[1].textContent = mySkills.length;
+
+    // ── Avatar initials ───────────────────────────────────────────────
+    const av = document.querySelector('.profile-avatar');
+    if (av) {
+      av.textContent = initials(`${profile.firstName} ${profile.lastName}`);
+      av.className   = av.className.replace(/av-\w+/g, '') + ' ' + avColor(profile.id);
+    }
+
+    // ── Rating badge on cover ─────────────────────────────────────────
+    const ratingBadgeEl = document.getElementById('displayRating');
+    if (ratingBadgeEl) {
+      const r = Number(profile.averageRating ?? 0);
+      ratingBadgeEl.innerHTML = `${'★'.repeat(Math.round(r))}${'☆'.repeat(5 - Math.round(r))}
+        ${r.toFixed(1)} (${received.length} review${received.length !== 1 ? 's' : ''})`;
+    }
+
+    // ── Update sidebar + stored user ─────────────────────────────────
+    Auth.updateUser(profile);
+    populateSidebarUser();
+    const sidebarDept = document.querySelector('.sidebar-user-dept');
+    if (sidebarDept) sidebarDept.textContent =
+      [profile.department, profile.yearOfStudy ? `Y${profile.yearOfStudy}` : null]
+        .filter(Boolean).join(', ');
+
+    // ── Prefill edit modal form ───────────────────────────────────────
+    const fFirst = document.getElementById('editFirstName');
+    const fLast  = document.getElementById('editLastName');
+    const fBio   = document.getElementById('editBio');
+    if (fFirst) fFirst.value = profile.firstName || '';
+    if (fLast)  fLast.value  = profile.lastName  || '';
+    if (fBio)   fBio.value   = profile.bio        || '';
+
+    // FIX editDept / editYear selects: set by value match or add option
+    const deptSelect = document.getElementById('editDept');
+    const yearSelect = document.getElementById('editYear');
+    if (deptSelect && profile.department) {
+      // Try to find matching option, otherwise add one
+      const opt = [...deptSelect.options].find(o => o.value === profile.department || o.text === profile.department);
+      if (opt) { opt.selected = true; }
+      else { const o = new Option(profile.department, profile.department, true, true); deptSelect.add(o); }
+    }
+    if (yearSelect && profile.yearOfStudy) {
+      const opt = [...yearSelect.options].find(o => o.value === profile.yearOfStudy || o.text === profile.yearOfStudy || o.text.includes(profile.yearOfStudy));
+      if (opt) opt.selected = true;
+    }
+
+    // ── Feedback / reviews section ────────────────────────────────────
+    // FIX: API returns reviewerId + reviewerName, not authorId + authorName
+    const fbContainer = document.querySelector('.feedback-list') ||
+                        document.getElementById('feedbackList');
+    if (fbContainer) {
+      if (!received.length) {
+        fbContainer.innerHTML = '<p style="color:var(--text-muted);font-size:.875rem;padding:1rem 0">No reviews yet.</p>';
+      } else {
+        fbContainer.innerHTML = received.slice(0, 5).map(f => `
+          <div class="feedback-card">
+            <div class="feedback-top">
+              <div class="feedback-author">
+                <div class="avatar avatar-sm ${avColor(f.reviewerId)}">${initials(f.reviewerName)}</div>
+                <div>
+                  <div class="feedback-name">${f.reviewerName}</div>
+                  <div class="feedback-date">${fmtDate(f.createdAt)}</div>
+                </div>
+              </div>
+              <div class="feedback-stars" style="color:var(--accent)">${stars(f.overallRating)}</div>
+            </div>
+            <div class="feedback-text">"${f.reviewText || 'No written review.'}"</div>
+            <div class="feedback-skill mt-1">
+              <span class="badge badge-teal">${f.skillTitle}</span>
+            </div>
+          </div>`).join('');
+      }
+    }
+
+  } catch(e) {
+    console.error('Profile load error:', e);
+    showToast('Failed to load profile. Is the backend running?', 'error');
+  }
+})();
+
+// ── Save profile ──────────────────────────────────────────────────────
+async function saveProfile() {
+  const payload = {
+    firstName:   document.getElementById('editFirstName')?.value?.trim(),
+    lastName:    document.getElementById('editLastName')?.value?.trim(),
+    department:  document.getElementById('editDept')?.value,
+    yearOfStudy: document.getElementById('editYear')?.value,
+    bio:         document.getElementById('editBio')?.value?.trim(),
+  };
+  try {
+    const updated = await UserAPI.update(payload);
+    // Update display
+    const nameEl = document.getElementById('displayName');
+    const deptEl = document.getElementById('displayDept');
+    const bioEl  = document.getElementById('displayBio');
+    if (nameEl) nameEl.textContent = `${updated.firstName} ${updated.lastName}`;
+    if (deptEl) deptEl.textContent = [updated.department, updated.yearOfStudy].filter(Boolean).join(' · ');
+    if (bioEl && updated.bio) bioEl.textContent = updated.bio;
+
+    // Persist to localStorage
+    Auth.setSession({
+      token:    Auth.getToken(),
+      userId:   updated.id,
+      email:    updated.email,
+      fullName: updated.fullName,
+      role:     updated.role,
+    });
+    populateSidebarUser();
+    closeModal('editProfileModal');
+    showToast('Profile updated!');
+  } catch(e) {
+    showToast(e.message || 'Update failed', 'error');
+  }
+}
+</script>
+</body>
+</html>

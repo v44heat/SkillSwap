@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Feedback — SkillSwap</title>
+<link rel="stylesheet" href="dashboard-shell.css">
+<style>
+  /* ── TABS ── */
+  .tabs { display: flex; gap: 0; background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 4px; width: fit-content; margin-bottom: 1.75rem; }
+  .tab { padding: 0.5rem 1.2rem; border-radius: 7px; font-size: 0.875rem; font-weight: 500; color: var(--text-muted); cursor: pointer; transition: all 0.18s; border: none; background: transparent; font-family: 'DM Sans', sans-serif; }
+  .tab:hover { color: var(--text-main); }
+  .tab.active { background: var(--primary); color: var(--white); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── RATING HERO ── */
+  .rating-hero {
+    background: var(--primary); border-radius: 16px;
+    padding: 1.75rem 2rem; margin-bottom: 2rem;
+    position: relative; overflow: hidden;
+    display: flex; align-items: center; gap: 2rem; flex-wrap: wrap;
+  }
+  .rating-hero::before {
+    content: ''; position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 50% 70% at 90% 50%, rgba(232,168,56,0.15) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 60% at 10% 80%, rgba(29,158,117,0.1) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .rating-hero-score { position: relative; z-index: 1; text-align: center; flex-shrink: 0; }
+  .rating-hero-num {
+    font-family: 'DM Serif Display', serif;
+    font-size: 4rem; color: var(--white); line-height: 1;
+    margin-bottom: 0.25rem;
+  }
+  .rating-hero-stars { font-size: 1.25rem; color: var(--accent); letter-spacing: 3px; margin-bottom: 0.35rem; }
+  .rating-hero-count { font-size: 0.82rem; color: rgba(255,255,255,0.5); }
+
+  .rating-hero-bars { position: relative; z-index: 1; flex: 1; min-width: 220px; }
+  .rh-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .rh-bar-label { font-size: 0.78rem; color: rgba(255,255,255,0.6); width: 40px; flex-shrink: 0; display: flex; align-items: center; gap: 3px; }
+  .rh-bar-label span { color: var(--accent); font-size: 0.7rem; }
+  .rh-bar-track { flex: 1; height: 6px; background: rgba(255,255,255,0.12); border-radius: 4px; overflow: hidden; }
+  .rh-bar-fill { height: 100%; border-radius: 4px; background: var(--accent); transition: width 1s ease; }
+  .rh-bar-count { font-size: 0.75rem; color: rgba(255,255,255,0.45); width: 20px; text-align: right; flex-shrink: 0; }
+
+  .rating-hero-breakdown { position: relative; z-index: 1; display: flex; gap: 1.5rem; flex-wrap: wrap; }
+  .rh-metric { text-align: center; }
+  .rh-metric-num { font-family: 'DM Serif Display', serif; font-size: 1.6rem; color: var(--white); line-height: 1; }
+  .rh-metric-label { font-size: 0.72rem; color: rgba(255,255,255,0.45); margin-top: 3px; white-space: nowrap; }
+
+  /* ── PENDING FEEDBACK BANNER ── */
+  .pending-banner {
+    background: var(--accent-light); border: 1px solid rgba(232,168,56,0.3);
+    border-radius: 12px; padding: 1rem 1.25rem;
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 1.5rem; flex-wrap: wrap;
+  }
+  .pending-banner-icon { width: 36px; height: 36px; border-radius: 9px; background: rgba(232,168,56,0.2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .pending-banner-icon svg { width: 18px; height: 18px; stroke: var(--accent-dark); fill: none; stroke-width: 2; }
+  .pending-banner-text { flex: 1; min-width: 0; }
+  .pending-banner-text p { font-size: 0.875rem; color: var(--text-main); font-weight: 600; margin-bottom: 1px; }
+  .pending-banner-text span { font-size: 0.8rem; color: var(--text-muted); }
+
+  /* ── FEEDBACK CARD ── */
+  .feedback-card {
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: 14px; padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem; transition: all 0.2s;
+  }
+  .feedback-card:hover { box-shadow: 0 3px 14px rgba(26,26,46,0.06); }
+  .fc-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 0.85rem; flex-wrap: wrap; }
+  .fc-author { display: flex; align-items: center; gap: 12px; }
+  .fc-author-info { }
+  .fc-name { font-size: 0.9rem; font-weight: 700; color: var(--primary); }
+  .fc-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .fc-dot { width: 3px; height: 3px; border-radius: 50%; background: var(--border-2); }
+  .fc-rating-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+  .fc-stars { color: var(--accent); font-size: 1rem; letter-spacing: 2px; }
+  .fc-score { font-family: 'DM Serif Display', serif; font-size: 1.1rem; color: var(--primary); line-height: 1; }
+
+  .fc-text { font-size: 0.875rem; color: var(--text-muted); line-height: 1.75; margin-bottom: 0.85rem; border-left: 3px solid var(--border); padding-left: 0.85rem; font-style: italic; }
+  .fc-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.6rem; }
+  .fc-skill-tag { }
+  .fc-actions { display: flex; gap: 6px; }
+
+  /* ── PENDING FEEDBACK CARD ── */
+  .pending-fc {
+    background: var(--white); border: 1.5px dashed rgba(232,168,56,0.4);
+    border-radius: 14px; padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+  }
+  .pending-fc-top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
+  .pending-fc-left { display: flex; align-items: center; gap: 12px; }
+  .pending-fc-info { }
+  .pending-fc-name { font-size: 0.9rem; font-weight: 700; color: var(--primary); }
+  .pending-fc-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+  .pending-fc-session { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.85rem; }
+  .pending-fc-prompt { font-size: 0.82rem; color: var(--accent-dark); font-weight: 600; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 6px; }
+  .pending-fc-prompt svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+  /* Star selector */
+  .star-selector { display: flex; gap: 6px; margin-bottom: 0.75rem; }
+  .star-btn { background: none; border: none; font-size: 1.6rem; cursor: pointer; color: var(--border-2); transition: color 0.12s, transform 0.12s; line-height: 1; padding: 0; }
+  .star-btn:hover, .star-btn.lit { color: var(--accent); }
+  .star-btn:hover { transform: scale(1.15); }
+
+  /* ── GIVEN FEEDBACK ── */
+  .given-fc {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 1.1rem 1.4rem;
+    margin-bottom: 0.85rem; display: flex; gap: 12px; align-items: flex-start;
+  }
+  .given-fc-body { flex: 1; min-width: 0; }
+  .given-fc-name { font-size: 0.875rem; font-weight: 600; color: var(--primary); margin-bottom: 2px; }
+  .given-fc-meta { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+  .given-fc-text { font-size: 0.83rem; color: var(--text-muted); line-height: 1.6; font-style: italic; border-left: 3px solid var(--border); padding-left: 0.75rem; }
+  .given-fc-right { flex-shrink: 0; text-align: right; }
+  .given-fc-stars { color: var(--accent); font-size: 0.85rem; }
+  .given-fc-date { font-size: 0.72rem; color: var(--text-muted); margin-top: 3px; }
+
+  /* Modal */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 500; align-items: center; justify-content: center; padding: 1rem; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--white); border-radius: 16px; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
+  .modal-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--white); z-index: 1; }
+  .modal-title { font-size: 1rem; font-weight: 600; color: var(--text-main); }
+  .modal-close { width: 32px; height: 32px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.1rem; color: var(--text-muted); transition: all 0.18s; }
+  .modal-close:hover { background: var(--surface-2); }
+  .modal-body { padding: 1.5rem; }
+  .modal-footer { padding: 1rem 1.5rem; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 0.75rem; }
+
+  /* Aspect rating rows */
+  .aspect-row { display: flex; align-items: center; justify-content: space-between; padding: 0.7rem 0; border-bottom: 1px solid var(--border); }
+  .aspect-row:last-child { border-bottom: none; }
+  .aspect-label { font-size: 0.875rem; color: var(--text-main); font-weight: 500; }
+  .aspect-stars { display: flex; gap: 4px; }
+  .asp-star { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--border-2); transition: color 0.12s; padding: 0; line-height: 1; }
+  .asp-star.lit { color: var(--accent); }
+
+  /* Toast */
+  .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 999; background: var(--primary); color: var(--white); padding: 0.85rem 1.25rem; border-radius: 10px; font-size: 0.875rem; font-weight: 500; display: flex; align-items: center; gap: 8px; transform: translateY(80px); opacity: 0; transition: all 0.3s ease; pointer-events: none; box-shadow: 0 4px 20px rgba(26,26,46,0.2); }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast svg { width: 16px; height: 16px; stroke: var(--accent); fill: none; stroke-width: 2.5; }
+</style>
+</head>
+<body>
+
+<div class="sidebar-overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <a href="index.html" class="sidebar-logo">
+      <div class="logo-dot"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg></div>
+      SkillSwap
+    </a>
+  </div>
+  <div class="sidebar-user">
+    <div class="sidebar-avatar">AK</div>
+    <div class="sidebar-user-info">
+      <div class="sidebar-user-name">Amara Kofi</div>
+      <div class="sidebar-user-dept">Computer Science, Y3</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Main</div>
+    <a href="dashboard.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</a>
+    <a href="profile.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>My Profile</a>
+    <a href="my-skills.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>My Skills</a>
+    <div class="nav-section-label">Exchange</div>
+    <a href="browse-skills.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Browse Skills</a>
+    <a href="sessions.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Sessions<span class="nav-badge">2</span></a>
+    <a href="requests.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Requests<span class="nav-badge">3</span></a>
+    <a href="feedback.html" class="nav-item active"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>Feedback</a>
+  </nav>
+  <div class="sidebar-footer">
+    <a href="login.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Log out</a>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main-wrap">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="topbar-btn mobile-menu-btn" onclick="openSidebar()">
+        <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div>
+        <div class="topbar-title">Feedback</div>
+        <div class="breadcrumb"><a href="dashboard.html">Dashboard</a> / Feedback</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-content">
+
+    <!-- RATING HERO -->
+    <div class="rating-hero">
+      <div class="rating-hero-score">
+        <div class="rating-hero-num">4.8</div>
+        <div class="rating-hero-stars">★★★★★</div>
+        <div class="rating-hero-count">Based on 12 reviews</div>
+      </div>
+
+      <div class="rating-hero-bars">
+        <div class="rh-bar-row">
+          <div class="rh-bar-label">5 <span>★</span></div>
+          <div class="rh-bar-track"><div class="rh-bar-fill" style="width:75%;"></div></div>
+          <div class="rh-bar-count">9</div>
+        </div>
+        <div class="rh-bar-row">
+          <div class="rh-bar-label">4 <span>★</span></div>
+          <div class="rh-bar-track"><div class="rh-bar-fill" style="width:17%;background:#c4862a;"></div></div>
+          <div class="rh-bar-count">2</div>
+        </div>
+        <div class="rh-bar-row">
+          <div class="rh-bar-label">3 <span>★</span></div>
+          <div class="rh-bar-track"><div class="rh-bar-fill" style="width:8%;background:#d85a30;"></div></div>
+          <div class="rh-bar-count">1</div>
+        </div>
+        <div class="rh-bar-row">
+          <div class="rh-bar-label">2 <span>★</span></div>
+          <div class="rh-bar-track"><div class="rh-bar-fill" style="width:0%;"></div></div>
+          <div class="rh-bar-count">0</div>
+        </div>
+        <div class="rh-bar-row">
+          <div class="rh-bar-label">1 <span>★</span></div>
+          <div class="rh-bar-track"><div class="rh-bar-fill" style="width:0%;background:#a32d2d;"></div></div>
+          <div class="rh-bar-count">0</div>
+        </div>
+      </div>
+
+      <div class="rating-hero-breakdown">
+        <div class="rh-metric">
+          <div class="rh-metric-num">4.9</div>
+          <div class="rh-metric-label">Communication</div>
+        </div>
+        <div class="rh-metric">
+          <div class="rh-metric-num">4.9</div>
+          <div class="rh-metric-label">Clarity</div>
+        </div>
+        <div class="rh-metric">
+          <div class="rh-metric-num">4.7</div>
+          <div class="rh-metric-label">Punctuality</div>
+        </div>
+        <div class="rh-metric">
+          <div class="rh-metric-num">4.8</div>
+          <div class="rh-metric-label">Preparation</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('received', this)">Received (12)</button>
+      <button class="tab" onclick="switchTab('pending', this)">Pending to leave (2)</button>
+      <button class="tab" onclick="switchTab('given', this)">Given by me (9)</button>
+    </div>
+
+    <!-- ── RECEIVED TAB ── -->
+    <div class="tab-panel active" id="tab-received">
+
+      <!-- Filter row -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:0.75rem;">
+        <div style="font-size:0.875rem;color:var(--text-muted);">12 reviews received across <strong style="color:var(--text-main);">2 skills</strong></div>
+        <div style="display:flex;gap:0.6rem;">
+          <select class="form-input" style="padding:0.45rem 1.8rem 0.45rem 0.75rem;font-size:0.82rem;width:auto;appearance:none;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b6878' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right 6px center;">
+            <option>All skills</option><option>Python Programming</option><option>Data Analysis</option>
+          </select>
+          <select class="form-input" style="padding:0.45rem 1.8rem 0.45rem 0.75rem;font-size:0.82rem;width:auto;appearance:none;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b6878' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right 6px center;">
+            <option>All ratings</option><option>5 stars</option><option>4 stars</option><option>3 stars</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Feedback cards received -->
+      <div class="feedback-card">
+        <div class="fc-top">
+          <div class="fc-author">
+            <div class="avatar avatar-md av-coral">DS</div>
+            <div class="fc-author-info">
+              <div class="fc-name">Daniel Simiyu</div>
+              <div class="fc-meta">
+                <span>Business Admin · Year 2</span>
+                <span class="fc-dot"></span>
+                <span>March 25, 2026</span>
+              </div>
+            </div>
+          </div>
+          <div class="fc-rating-right">
+            <div class="fc-stars">★★★★★</div>
+            <div class="fc-score">5.0</div>
+          </div>
+        </div>
+        <div class="fc-text">"Amara is an exceptional teacher. She explained Pandas groupby operations in a way that finally made it click for me. She was very patient when I didn't understand the first time, and her examples were practical and relevant to my coursework. Highly recommend booking a session with her!"</div>
+        <div class="fc-footer">
+          <span class="badge badge-teal">Python Programming</span>
+          <div class="fc-actions">
+            <button class="btn btn-ghost-sm" onclick="openReplyModal('Daniel Simiyu')">Reply</button>
+            <button class="btn btn-ghost-sm">Report</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="feedback-card">
+        <div class="fc-top">
+          <div class="fc-author">
+            <div class="avatar avatar-md av-purple">JO</div>
+            <div class="fc-author-info">
+              <div class="fc-name">James Odhiambo</div>
+              <div class="fc-meta"><span>Business Admin · Year 2</span><span class="fc-dot"></span><span>March 20, 2026</span></div>
+            </div>
+          </div>
+          <div class="fc-rating-right">
+            <div class="fc-stars">★★★★★</div>
+            <div class="fc-score">5.0</div>
+          </div>
+        </div>
+        <div class="fc-text">"Really helpful session! Amara broke down data visualization in matplotlib step by step — starting from basics and building up to more complex charts. She also shared a resources list afterwards which was really thoughtful. Would definitely book again."</div>
+        <div class="fc-footer">
+          <span class="badge badge-amber">Data Analysis</span>
+          <div class="fc-actions">
+            <button class="btn btn-ghost-sm" onclick="openReplyModal('James Odhiambo')">Reply</button>
+            <button class="btn btn-ghost-sm">Report</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="feedback-card">
+        <div class="fc-top">
+          <div class="fc-author">
+            <div class="avatar avatar-md av-green">FO</div>
+            <div class="fc-author-info">
+              <div class="fc-name">Faith Otieno</div>
+              <div class="fc-meta"><span>Biology · Year 3</span><span class="fc-dot"></span><span>March 15, 2026</span></div>
+            </div>
+          </div>
+          <div class="fc-rating-right">
+            <div class="fc-stars">★★★★☆</div>
+            <div class="fc-score">4.0</div>
+          </div>
+        </div>
+        <div class="fc-text">"Good session overall. Amara clearly knows Python OOP well and explained the concepts clearly. Sometimes moved a bit quickly through examples but was always happy to slow down when I asked. The session was a bit long but very content-rich."</div>
+        <div class="fc-footer">
+          <span class="badge badge-teal">Python Programming</span>
+          <div class="fc-actions">
+            <button class="btn btn-ghost-sm" onclick="openReplyModal('Faith Otieno')">Reply</button>
+            <button class="btn btn-ghost-sm">Report</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="feedback-card">
+        <div class="fc-top">
+          <div class="fc-author">
+            <div class="avatar avatar-md av-blue">KM</div>
+            <div class="fc-author-info">
+              <div class="fc-name">Kevin Maina</div>
+              <div class="fc-meta"><span>Software Engineering · Year 4</span><span class="fc-dot"></span><span>March 5, 2026</span></div>
+            </div>
+          </div>
+          <div class="fc-rating-right">
+            <div class="fc-stars">★★★★★</div>
+            <div class="fc-score">5.0</div>
+          </div>
+        </div>
+        <div class="fc-text">"One of the best study sessions I've had. Amara's approach of using real datasets made the pandas concepts stick immediately. She also set up a small collaborative coding exercise which really helped me internalise what I'd learned."</div>
+        <div class="fc-footer">
+          <span class="badge badge-teal">Python Programming</span>
+          <div class="fc-actions">
+            <button class="btn btn-ghost-sm" onclick="openReplyModal('Kevin Maina')">Reply</button>
+            <button class="btn btn-ghost-sm">Report</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="feedback-card">
+        <div class="fc-top">
+          <div class="fc-author">
+            <div class="avatar avatar-md av-amber">RK</div>
+            <div class="fc-author-info">
+              <div class="fc-name">Rachel Kamau</div>
+              <div class="fc-meta"><span>Fine Arts · Year 2</span><span class="fc-dot"></span><span>Feb 28, 2026</span></div>
+            </div>
+          </div>
+          <div class="fc-rating-right">
+            <div class="fc-stars">★★★★☆</div>
+            <div class="fc-score">4.0</div>
+          </div>
+        </div>
+        <div class="fc-text">"Amara was helpful and friendly throughout. The Pandas section was a bit technical for me (I have no coding background) but she adjusted her explanations when I asked. The Excel visualization part was very practical and I can already apply it."</div>
+        <div class="fc-footer">
+          <span class="badge badge-amber">Data Analysis</span>
+          <div class="fc-actions">
+            <button class="btn btn-ghost-sm" onclick="openReplyModal('Rachel Kamau')">Reply</button>
+            <button class="btn btn-ghost-sm">Report</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── PENDING TAB ── -->
+    <div class="tab-panel" id="tab-pending">
+
+      <div class="pending-banner">
+        <div class="pending-banner-icon">
+          <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </div>
+        <div class="pending-banner-text">
+          <p>You have 2 sessions waiting for your feedback</p>
+          <span>Rating students helps build a trustworthy community. It only takes a minute!</span>
+        </div>
+        <button class="btn btn-primary" onclick="openRateModal('Daniel Simiyu','Python Programming','March 25, 2026')">Rate now</button>
+      </div>
+
+      <!-- Pending feedback 1 -->
+      <div class="pending-fc" id="pfc1">
+        <div class="pending-fc-top">
+          <div class="pending-fc-left">
+            <div class="avatar avatar-md av-coral">DS</div>
+            <div class="pending-fc-info">
+              <div class="pending-fc-name">Daniel Simiyu</div>
+              <div class="pending-fc-meta">Business Admin · Year 2</div>
+            </div>
+          </div>
+          <span class="badge badge-amber">Pending</span>
+        </div>
+        <div class="pending-fc-session">
+          Session: <strong>Python Programming</strong> · March 25, 2026 · 1 hour · Teaching
+        </div>
+        <div class="pending-fc-prompt">
+          <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          How was Daniel as a learner?
+        </div>
+        <div class="star-selector" id="stars-pfc1">
+          <button class="star-btn" onclick="quickStar(1,'pfc1')">★</button>
+          <button class="star-btn" onclick="quickStar(2,'pfc1')">★</button>
+          <button class="star-btn" onclick="quickStar(3,'pfc1')">★</button>
+          <button class="star-btn" onclick="quickStar(4,'pfc1')">★</button>
+          <button class="star-btn" onclick="quickStar(5,'pfc1')">★</button>
+        </div>
+        <div style="display:flex;gap:0.6rem;">
+          <button class="btn btn-primary" onclick="openRateModal('Daniel Simiyu','Python Programming','March 25, 2026')">Write full review</button>
+          <button class="btn btn-ghost-sm" onclick="dismissPending('pfc1')">Skip for now</button>
+        </div>
+      </div>
+
+      <!-- Pending feedback 2 -->
+      <div class="pending-fc" id="pfc2">
+        <div class="pending-fc-top">
+          <div class="pending-fc-left">
+            <div class="avatar avatar-md av-purple">JO</div>
+            <div class="pending-fc-info">
+              <div class="pending-fc-name">James Odhiambo</div>
+              <div class="pending-fc-meta">Business Admin · Year 2</div>
+            </div>
+          </div>
+          <span class="badge badge-amber">Pending</span>
+        </div>
+        <div class="pending-fc-session">
+          Session: <strong>Data Analysis</strong> · March 20, 2026 · 1.5 hours · Teaching
+        </div>
+        <div class="pending-fc-prompt">
+          <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          How was James as a learner?
+        </div>
+        <div class="star-selector" id="stars-pfc2">
+          <button class="star-btn" onclick="quickStar(1,'pfc2')">★</button>
+          <button class="star-btn" onclick="quickStar(2,'pfc2')">★</button>
+          <button class="star-btn" onclick="quickStar(3,'pfc2')">★</button>
+          <button class="star-btn" onclick="quickStar(4,'pfc2')">★</button>
+          <button class="star-btn" onclick="quickStar(5,'pfc2')">★</button>
+        </div>
+        <div style="display:flex;gap:0.6rem;">
+          <button class="btn btn-primary" onclick="openRateModal('James Odhiambo','Data Analysis','March 20, 2026')">Write full review</button>
+          <button class="btn btn-ghost-sm" onclick="dismissPending('pfc2')">Skip for now</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── GIVEN TAB ── -->
+    <div class="tab-panel" id="tab-given">
+
+      <div style="font-size:0.875rem;color:var(--text-muted);margin-bottom:1.25rem;">9 reviews you've written for other students.</div>
+
+      <div class="given-fc">
+        <div class="avatar avatar-sm av-amber">MJ</div>
+        <div class="given-fc-body">
+          <div class="given-fc-name">Maya Juma <span class="badge badge-amber" style="font-size:0.68rem;margin-left:4px;">Figma & UI/UX</span></div>
+          <div class="given-fc-meta">March 10, 2026 · You were learning</div>
+          <div class="given-fc-text">"Maya is a phenomenal design teacher. She walked me through components and auto-layout in Figma from scratch. Very structured, patient, and encouraging."</div>
+        </div>
+        <div class="given-fc-right">
+          <div class="given-fc-stars">★★★★★</div>
+          <div class="given-fc-date">5.0</div>
+        </div>
+      </div>
+
+      <div class="given-fc">
+        <div class="avatar avatar-sm av-coral">TN</div>
+        <div class="given-fc-body">
+          <div class="given-fc-name">Tom Ndege <span class="badge badge-coral" style="font-size:0.68rem;margin-left:4px;">Calculus II</span></div>
+          <div class="given-fc-meta">March 5, 2026 · You were learning</div>
+          <div class="given-fc-text">"Tom has a really intuitive way of explaining eigenvectors. His analogy approach made abstract concepts concrete very quickly."</div>
+        </div>
+        <div class="given-fc-right">
+          <div class="given-fc-stars">★★★★★</div>
+          <div class="given-fc-date">5.0</div>
+        </div>
+      </div>
+
+      <div class="given-fc">
+        <div class="avatar avatar-sm av-green">FO</div>
+        <div class="given-fc-body">
+          <div class="given-fc-name">Faith Otieno <span class="badge badge-green" style="font-size:0.68rem;margin-left:4px;">Cell Biology</span></div>
+          <div class="given-fc-meta">Feb 20, 2026 · You were learning</div>
+          <div class="given-fc-text">"Faith's visual approach to DNA replication was outstanding. The concept maps she drew during the session helped me understand meiosis finally."</div>
+        </div>
+        <div class="given-fc-right">
+          <div class="given-fc-stars">★★★★★</div>
+          <div class="given-fc-date">5.0</div>
+        </div>
+      </div>
+
+      <div class="given-fc">
+        <div class="avatar avatar-sm av-blue">DS</div>
+        <div class="given-fc-body">
+          <div class="given-fc-name">Daniel Simiyu <span class="badge badge-blue" style="font-size:0.68rem;margin-left:4px;">Financial Accounting</span></div>
+          <div class="given-fc-meta">Feb 14, 2026 · You were learning</div>
+          <div class="given-fc-text">"Great session — Daniel explained double-entry bookkeeping using a real business example which made it very tangible. Could be more structured next time."</div>
+        </div>
+        <div class="given-fc-right">
+          <div class="given-fc-stars">★★★★☆</div>
+          <div class="given-fc-date">4.0</div>
+        </div>
+      </div>
+
+      <div class="given-fc">
+        <div class="avatar avatar-sm av-purple">BW</div>
+        <div class="given-fc-body">
+          <div class="given-fc-name">Beatrice Wanjiku <span class="badge badge-purple" style="font-size:0.68rem;margin-left:4px;">French Language</span></div>
+          <div class="given-fc-meta">Feb 7, 2026 · You were learning</div>
+          <div class="given-fc-text">"Best French session I've had. Beatrice makes it fun and her patience is incredible. After just one session I could introduce myself in French!"</div>
+        </div>
+        <div class="given-fc-right">
+          <div class="given-fc-stars">★★★★★</div>
+          <div class="given-fc-date">5.0</div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- FULL RATE MODAL -->
+<div class="modal-overlay" id="rateModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Rate your session</div>
+      <div class="modal-close" onclick="closeModal('rateModal')">✕</div>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;align-items:center;gap:12px;padding:1rem;background:var(--surface);border-radius:10px;margin-bottom:1.25rem;">
+        <div class="avatar avatar-md av-coral" id="rateAvatar">??</div>
+        <div>
+          <div style="font-weight:700;color:var(--primary);" id="rateStudentName">Student</div>
+          <div style="font-size:0.8rem;color:var(--text-muted);" id="rateSessionInfo">Skill · Date</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Overall rating *</label>
+        <div class="star-selector" id="modalStars">
+          <button class="star-btn" data-v="1" onclick="setModalStar(1)">★</button>
+          <button class="star-btn" data-v="2" onclick="setModalStar(2)">★</button>
+          <button class="star-btn" data-v="3" onclick="setModalStar(3)">★</button>
+          <button class="star-btn" data-v="4" onclick="setModalStar(4)">★</button>
+          <button class="star-btn" data-v="5" onclick="setModalStar(5)">★</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Rate specific aspects</label>
+        <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+          <div class="aspect-row" style="padding:0.7rem 1rem;">
+            <div class="aspect-label">Engagement & enthusiasm</div>
+            <div class="aspect-stars">
+              <button class="asp-star" onclick="setAspect(this,0)">★</button>
+              <button class="asp-star" onclick="setAspect(this,0)">★</button>
+              <button class="asp-star" onclick="setAspect(this,0)">★</button>
+              <button class="asp-star" onclick="setAspect(this,0)">★</button>
+              <button class="asp-star" onclick="setAspect(this,0)">★</button>
+            </div>
+          </div>
+          <div class="aspect-row" style="padding:0.7rem 1rem;">
+            <div class="aspect-label">Punctuality & reliability</div>
+            <div class="aspect-stars">
+              <button class="asp-star" onclick="setAspect(this,1)">★</button>
+              <button class="asp-star" onclick="setAspect(this,1)">★</button>
+              <button class="asp-star" onclick="setAspect(this,1)">★</button>
+              <button class="asp-star" onclick="setAspect(this,1)">★</button>
+              <button class="asp-star" onclick="setAspect(this,1)">★</button>
+            </div>
+          </div>
+          <div class="aspect-row" style="padding:0.7rem 1rem;">
+            <div class="aspect-label">Came prepared</div>
+            <div class="aspect-stars">
+              <button class="asp-star" onclick="setAspect(this,2)">★</button>
+              <button class="asp-star" onclick="setAspect(this,2)">★</button>
+              <button class="asp-star" onclick="setAspect(this,2)">★</button>
+              <button class="asp-star" onclick="setAspect(this,2)">★</button>
+              <button class="asp-star" onclick="setAspect(this,2)">★</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Written review</label>
+        <textarea class="form-input" id="rateComment" rows="4" placeholder="Describe your experience. What did this student do well? What would make sessions even better?"></textarea>
+        <div class="form-hint">Your review will be visible on their public profile to help other students.</div>
+      </div>
+
+      <div style="background:var(--teal-light);border-radius:9px;padding:0.85rem 1rem;font-size:0.82rem;color:#0f6e56;display:flex;gap:8px;align-items:flex-start;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+        Honest feedback helps everyone grow. Be constructive and respectful.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('rateModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitFullRating()">Submit review</button>
+    </div>
+  </div>
+</div>
+
+<!-- REPLY MODAL -->
+<div class="modal-overlay" id="replyModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Reply to <span id="replyToName">student</span></div>
+      <div class="modal-close" onclick="closeModal('replyModal')">✕</div>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1rem;line-height:1.6;">Your reply will appear publicly below the review. Keep it friendly and professional.</p>
+      <div class="form-group">
+        <label class="form-label">Your reply</label>
+        <textarea class="form-input" id="replyText" rows="4" placeholder="Thank you for your review! It was great working with you…"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('replyModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitReply()">Post reply</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/></svg>
+  <span id="toastMsg">Done!</span>
+</div>
+
+<script>
+  let modalRating = 0;
+
+  function openSidebar() { document.getElementById('sidebar').classList.add('open'); document.getElementById('overlay').classList.add('open'); }
+  function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); }
+  function openModal(id) { document.getElementById(id).classList.add('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+  function switchTab(name, btn) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + name).classList.add('active');
+  }
+
+  function quickStar(val, pfcId) {
+    const stars = document.querySelectorAll(`#stars-${pfcId} .star-btn`);
+    stars.forEach((s, i) => s.classList.toggle('lit', i < val));
+  }
+
+  function dismissPending(id) {
+    const el = document.getElementById(id);
+    el.style.transition = 'all 0.3s'; el.style.opacity = '0'; el.style.height = el.offsetHeight + 'px';
+    setTimeout(() => { el.style.height = '0'; el.style.padding = '0'; el.style.margin = '0'; el.style.overflow = 'hidden'; }, 100);
+    showToast('Skipped — you can rate later from your sessions history.');
+  }
+
+  function openRateModal(student, skill, date) {
+    document.getElementById('rateStudentName').textContent = student;
+    document.getElementById('rateSessionInfo').textContent = skill + ' · ' + date;
+    // reset
+    modalRating = 0;
+    document.querySelectorAll('#modalStars .star-btn').forEach(s => s.classList.remove('lit'));
+    document.querySelectorAll('.asp-star').forEach(s => s.classList.remove('lit'));
+    document.getElementById('rateComment').value = '';
+    openModal('rateModal');
+  }
+
+  function setModalStar(val) {
+    modalRating = val;
+    document.querySelectorAll('#modalStars .star-btn').forEach((s, i) => s.classList.toggle('lit', i < val));
+  }
+
+  function setAspect(clicked, group) {
+    const row = clicked.closest('.aspect-stars');
+    const stars = row.querySelectorAll('.asp-star');
+    const idx = Array.from(stars).indexOf(clicked);
+    stars.forEach((s, i) => s.classList.toggle('lit', i <= idx));
+  }
+
+  function submitFullRating() {
+    if (!modalRating) { showToast('Please select an overall star rating.'); return; }
+    closeModal('rateModal');
+    showToast('Review submitted! Thank you for helping the community.');
+  }
+
+  function openReplyModal(name) {
+    document.getElementById('replyToName').textContent = name;
+    document.getElementById('replyText').value = '';
+    openModal('replyModal');
+  }
+
+  function submitReply() {
+    const text = document.getElementById('replyText').value.trim();
+    if (!text) { showToast('Please write a reply first.'); return; }
+    closeModal('replyModal');
+    showToast('Reply posted successfully!');
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    document.getElementById('toastMsg').textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3500);
+  }
+
+  document.querySelectorAll('.modal-overlay').forEach(m => {
+    m.addEventListener('click', function(e) { if (e.target === this) this.classList.remove('open'); });
+  });
+</script>
+
+<script src="api.js"></script>
+<script>
+  function openSidebar() { document.getElementById('sidebar').classList.add('open'); document.getElementById('overlay').classList.add('open'); }
+  function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); }
+  function openModal(id) { document.getElementById(id).classList.add('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+  let modalRating = 0;
+  function setModalStar(val) {
+    modalRating = val;
+    document.querySelectorAll('#modalStars .star-btn').forEach((s,i) => s.classList.toggle('lit', i < val));
+  }
+
+  function openReplyModal(feedbackId, name) {
+    window._replyFeedbackId = feedbackId;
+    document.getElementById('replyToName').textContent = name;
+    document.getElementById('replyText').value = '';
+    openModal('replyModal');
+  }
+
+  window.submitReply = async function() {
+    const text = document.getElementById('replyText').value.trim();
+    if (!text) { showToast('Please write a reply first.'); return; }
+    try {
+      await FeedbackAPI.reply(window._replyFeedbackId, text);
+      closeModal('replyModal');
+      showToast('Reply posted!');
+      setTimeout(() => location.reload(), 800);
+    } catch(e) { showToast(e.message, 'error'); }
+  };
+
+  document.querySelectorAll('.modal-overlay').forEach(m => {
+    m.addEventListener('click', function(e) { if (e.target === this) this.classList.remove('open'); });
+  });
+
+  // ── FIX: logout ─────────────────────────────────────────────────────
+  document.querySelectorAll('a[href="login.html"]').forEach(el => {
+    el.addEventListener('click', e => { e.preventDefault(); Auth.clear(); window.location.href = 'login.html'; });
+  });
+
+  // ── Load feedback from API ───────────────────────────────────────────
+  (async () => {
+    Auth.requireAuth();
+    populateSidebarUser();
+    populateTopbarAvatar();
+
+    try { const p = await UserAPI.me(); const dept = document.querySelector('.sidebar-user-dept'); if (dept) dept.textContent = [p.department, p.yearOfStudy ? 'Y'+p.yearOfStudy : null].filter(Boolean).join(', '); } catch(_) {}
+
+    try {
+      const [received, given, history] = await Promise.all([
+        FeedbackAPI.received(),
+        FeedbackAPI.given(),
+        SessionAPI.history(),
+      ]);
+
+      // Update hero rating
+      if (received.length) {
+        const avg = received.reduce((s,f) => s + f.overallRating, 0) / received.length;
+        const heroNum = document.querySelector('.rating-hero-num');
+        if (heroNum) heroNum.textContent = avg.toFixed(1);
+        const heroCount = document.querySelector('.rating-hero-count');
+        if (heroCount) heroCount.textContent = `${received.length} review${received.length !== 1 ? 's' : ''}`;
+      }
+
+      // Received tab — FIX: use reviewerId/reviewerName not authorId/authorName
+      const recTab = document.getElementById('tab-received');
+      recTab.querySelectorAll('.feedback-card').forEach(c => c.remove());
+      if (!received.length) {
+        recTab.innerHTML += '<div style="text-align:center;padding:2rem;color:var(--text-muted);font-size:.875rem;">No reviews yet.</div>';
+      } else {
+        received.forEach(f => {
+          const div = document.createElement('div');
+          div.className = 'feedback-card';
+          div.innerHTML = `
+            <div class="fc-top">
+              <div class="fc-author">
+                <div class="avatar avatar-md ${avColor(f.reviewerId)}">${initials(f.reviewerName)}</div>
+                <div class="fc-author-info">
+                  <div class="fc-name">${f.reviewerName}</div>
+                  <div class="fc-meta"><span>${fmtDate(f.createdAt)}</span> · <span class="badge badge-teal" style="font-size:0.68rem;">${f.skillTitle}</span></div>
+                </div>
+              </div>
+              <div class="fc-rating-right">
+                <div class="fc-stars" style="color:var(--accent);">${stars(f.overallRating)}</div>
+                <div class="fc-score">${f.overallRating}.0</div>
+              </div>
+            </div>
+            ${f.reviewText ? `<div class="fc-text">"${f.reviewText}"</div>` : ''}
+            ${f.teacherReply ? `<div style="margin-top:.75rem;padding:.75rem;background:var(--surface);border-radius:8px;font-size:.82rem;color:var(--text-muted);"><strong>Your reply:</strong> ${f.teacherReply}</div>` : ''}
+            <div class="fc-footer">
+              <div></div>
+              <div class="fc-actions">
+                ${!f.teacherReply ? `<button class="btn btn-ghost-sm" onclick="openReplyModal(${f.id},'${f.reviewerName.replace(/'/g,"\\'")}')">Reply</button>` : ''}
+                <button class="btn btn-ghost-sm" onclick="FeedbackAPI.report(${f.id}).then(()=>showToast('Feedback reported.')).catch(e=>showToast(e.message,'error'))">Report</button>
+              </div>
+            </div>`;
+          const filterRow = recTab.querySelector('.flex-between');
+          filterRow ? filterRow.after(div) : recTab.appendChild(div);
+        });
+      }
+
+      // Given tab — FIX: use revieweeId/revieweeName not recipientId/recipientName
+      const givenTab = document.getElementById('tab-given');
+      givenTab.querySelectorAll('.given-fc').forEach(c => c.remove());
+      if (!given.length) {
+        givenTab.innerHTML += '<div style="text-align:center;padding:2rem;color:var(--text-muted);font-size:.875rem;">You have not given any reviews yet.</div>';
+      } else {
+        given.forEach(f => {
+          const div = document.createElement('div');
+          div.className = 'given-fc';
+          div.innerHTML = `
+            <div class="avatar avatar-sm ${avColor(f.revieweeId)}">${initials(f.revieweeName)}</div>
+            <div class="given-fc-body">
+              <div class="given-fc-name">${f.revieweeName} <span class="badge badge-teal" style="font-size:0.68rem;margin-left:4px;">${f.skillTitle}</span></div>
+              <div class="given-fc-meta">${fmtDate(f.createdAt)}</div>
+              ${f.reviewText ? `<div class="given-fc-text">"${f.reviewText}"</div>` : ''}
+            </div>
+            <div class="given-fc-right">
+              <div class="given-fc-stars" style="color:var(--accent);">${stars(f.overallRating)}</div>
+              <div class="given-fc-date">${f.overallRating}.0</div>
+            </div>`;
+          givenTab.appendChild(div);
+        });
+      }
+
+      // Pending tab — sessions completed but not yet reviewed
+      const reviewed = new Set(given.map(f => f.sessionId));
+      const pendingToReview = history.filter(s => !reviewed.has(s.id));
+      const pendTab = document.getElementById('tab-pending');
+      pendTab.querySelectorAll('.pending-fc').forEach(c => c.remove());
+      const banner = pendTab.querySelector('.pending-banner');
+      if (!pendingToReview.length) {
+        if (banner) banner.innerHTML = '<span style="font-size:0.875rem;color:var(--accent-dark);">All caught up — no pending reviews!</span>';
+      } else {
+        if (banner) { const p = banner.querySelector('p'); if(p) p.textContent = `You have ${pendingToReview.length} session${pendingToReview.length>1?'s':''} waiting for feedback`; }
+        pendingToReview.forEach(s => {
+          const isTeaching = s.myRole === 'TEACHER';
+          const partner    = isTeaching ? s.learnerName : s.teacherName;
+          const partnerId  = isTeaching ? s.learnerId   : s.teacherId;
+          const div = document.createElement('div');
+          div.className = 'pending-fc';
+          div.id = `pfc-${s.id}`;
+          div.innerHTML = `
+            <div class="pending-fc-top">
+              <div class="pending-fc-left">
+                <div class="avatar avatar-md ${avColor(partnerId)}">${initials(partner)}</div>
+                <div class="pending-fc-info">
+                  <div class="pending-fc-name">${partner}</div>
+                  <div class="pending-fc-meta">${fmtDate(s.scheduledAt)}</div>
+                </div>
+              </div>
+              <span class="badge badge-amber">Pending</span>
+            </div>
+            <div class="pending-fc-session">Session: <strong>${s.skillTitle}</strong> · ${isTeaching ? 'Teaching' : 'Learning'}</div>
+            <div class="pending-fc-prompt">Rate this session</div>
+            <div style="display:flex;gap:0.6rem;">
+              <button class="btn btn-primary" onclick="openRateModal('${partner.replace(/'/g,"\\'")}','${s.skillTitle.replace(/'/g,"\\'")}','${fmtDate(s.scheduledAt)}',${s.id})">Write review</button>
+              <button class="btn btn-ghost-sm" onclick="document.getElementById('pfc-${s.id}').remove()">Skip</button>
+            </div>`;
+          banner ? banner.after(div) : pendTab.appendChild(div);
+        });
+      }
+
+    } catch(e) {
+      console.error('Feedback load error:', e);
+      showToast('Could not load feedback — is the backend running?', 'error');
+    }
+  })();
+
+  // Rate modal — opens with session context
+  window.openRateModal = function(name, skill, date, sessionId) {
+    window._rateSessionId = sessionId || null;
+    const nameEl = document.getElementById('rateStudentName');
+    const infoEl = document.getElementById('rateSessionInfo');
+    if (nameEl) nameEl.textContent = name;
+    if (infoEl) infoEl.textContent = `${skill||''} · ${date||''}`;
+    modalRating = 0;
+    document.querySelectorAll('#modalStars .star-btn').forEach(s => s.classList.remove('lit'));
+    const commentEl = document.getElementById('rateComment');
+    if (commentEl) commentEl.value = '';
+    openModal('rateModal');
+  };
+
+  window.submitFullRating = async function() {
+    if (!modalRating) { showToast('Please select a rating.'); return; }
+    const comment = document.getElementById('rateComment')?.value?.trim();
+    const sid = window._rateSessionId;
+    if (!sid) { showToast('Session not identified.', 'error'); return; }
+    try {
+      await FeedbackAPI.leave({ sessionId: sid, overallRating: modalRating, reviewText: comment });
+      closeModal('rateModal');
+      showToast('Review submitted! Thank you.');
+      setTimeout(() => location.reload(), 1000);
+    } catch(e) { showToast(e.message, 'error'); }
+  };
+</script>
+</body>
+</html>

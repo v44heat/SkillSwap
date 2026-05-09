@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — SkillSwap</title>
+<link rel="stylesheet" href="dashboard-shell.css">
+<style>
+  /* Page-specific */
+  .welcome-banner {
+    background: var(--primary); border-radius: 16px;
+    padding: 1.75rem 2rem; margin-bottom: 2rem;
+    position: relative; overflow: hidden;
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  }
+  .welcome-banner::before {
+    content: ''; position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 60% 80% at 90% 50%, rgba(232,168,56,0.18) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 60% at 10% 80%, rgba(29,158,117,0.1) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .welcome-text { position: relative; z-index: 1; }
+  .welcome-text p { color: rgba(255,255,255,0.55); font-size: 0.875rem; margin-bottom: 0.35rem; }
+  .welcome-text h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.6rem; color: var(--white); margin-bottom: 0.75rem;
+  }
+  .welcome-text h2 em { font-style: italic; color: var(--accent); }
+  .welcome-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+  .btn-accent {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 0.6rem 1.2rem; background: var(--accent); color: var(--primary);
+    border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif;
+    font-size: 0.875rem; font-weight: 700; cursor: pointer;
+    text-decoration: none; transition: all 0.18s;
+  }
+  .btn-accent:hover { background: var(--accent-dark); color: var(--white); }
+  .btn-white-outline {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 0.6rem 1.2rem;
+    background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.8);
+    border: 1px solid rgba(255,255,255,0.2); border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.875rem; font-weight: 500; cursor: pointer;
+    text-decoration: none; transition: all 0.18s;
+  }
+  .btn-white-outline:hover { background: rgba(255,255,255,0.15); color: var(--white); }
+  .welcome-illus { position: relative; z-index: 1; flex-shrink: 0; }
+  .welcome-illus svg { width: 90px; height: 90px; opacity: 0.25; }
+
+  /* Session card */
+  .session-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 0.9rem 0; border-bottom: 1px solid var(--border);
+  }
+  .session-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .session-time-block {
+    text-align: center; min-width: 48px;
+    background: var(--surface); border-radius: 10px;
+    padding: 0.4rem; flex-shrink: 0;
+  }
+  .session-time-day { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); }
+  .session-time-num { font-family: 'DM Serif Display', serif; font-size: 1.3rem; color: var(--primary); line-height: 1; }
+  .session-time-mon { font-size: 0.65rem; color: var(--text-muted); font-weight: 500; }
+  .session-info { flex: 1; min-width: 0; }
+  .session-title { font-size: 0.9rem; font-weight: 600; color: var(--text-main); margin-bottom: 2px; }
+  .session-meta { font-size: 0.78rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .session-dot { width: 3px; height: 3px; border-radius: 50%; background: var(--border-2); }
+  .session-status { margin-left: auto; flex-shrink: 0; }
+
+  /* Request item */
+  .request-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 0.85rem 0; border-bottom: 1px solid var(--border);
+  }
+  .request-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .request-info { flex: 1; min-width: 0; }
+  .request-name { font-size: 0.875rem; font-weight: 600; color: var(--text-main); }
+  .request-skill { font-size: 0.78rem; color: var(--text-muted); margin-top: 1px; }
+  .request-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .btn-accept {
+    padding: 0.35rem 0.8rem; background: var(--teal-light); color: #0f6e56;
+    border: 1px solid rgba(29,158,117,0.2); border-radius: 7px;
+    font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: all 0.18s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .btn-accept:hover { background: var(--teal); color: var(--white); }
+  .btn-decline {
+    padding: 0.35rem 0.8rem; background: transparent; color: var(--text-muted);
+    border: 1px solid var(--border); border-radius: 7px;
+    font-size: 0.78rem; font-weight: 500; cursor: pointer; transition: all 0.18s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .btn-decline:hover { border-color: var(--coral); color: var(--coral); }
+
+  /* Skill tile */
+  .skill-tile {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 1rem 1.25rem;
+    display: flex; align-items: center; gap: 12px;
+    transition: all 0.18s; cursor: pointer; text-decoration: none;
+  }
+  .skill-tile:hover { border-color: var(--primary); background: var(--white); box-shadow: 0 2px 12px rgba(26,26,46,0.06); }
+  .skill-tile-icon {
+    width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .skill-tile-icon svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
+  .skill-tile-info { flex: 1; min-width: 0; }
+  .skill-tile-name { font-size: 0.875rem; font-weight: 600; color: var(--text-main); }
+  .skill-tile-sessions { font-size: 0.75rem; color: var(--text-muted); margin-top: 1px; }
+  .skill-tile-rating { font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 3px; }
+
+  /* Suggested match card */
+  .match-card {
+    border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.25rem;
+    display: flex; gap: 12px; align-items: flex-start; transition: all 0.18s;
+  }
+  .match-card:hover { border-color: var(--primary); box-shadow: 0 2px 12px rgba(26,26,46,0.06); }
+  .match-card-info { flex: 1; min-width: 0; }
+  .match-name { font-size: 0.875rem; font-weight: 600; color: var(--text-main); }
+  .match-skill { font-size: 0.8rem; color: var(--text-muted); margin: 2px 0 6px; }
+  .match-tags { display: flex; gap: 5px; flex-wrap: wrap; }
+  .match-card-action { flex-shrink: 0; margin-top: 2px; }
+
+  /* Activity feed */
+  .activity-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 0.75rem 0; border-bottom: 1px solid var(--border);
+    font-size: 0.83rem;
+  }
+  .activity-item:last-child { border-bottom: none; }
+  .activity-icon {
+    width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .activity-icon svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
+  .activity-text { flex: 1; line-height: 1.5; color: var(--text-muted); }
+  .activity-text strong { color: var(--text-main); font-weight: 600; }
+  .activity-time { font-size: 0.72rem; color: var(--text-light); flex-shrink: 0; margin-top: 2px; }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR OVERLAY (mobile) -->
+<div class="sidebar-overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <a href="index.html" class="sidebar-logo">
+      <div class="logo-dot"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg></div>
+      SkillSwap
+    </a>
+  </div>
+  <div class="sidebar-user">
+    <div class="sidebar-avatar">AK</div>
+    <div class="sidebar-user-info">
+      <div class="sidebar-user-name">Amara Kofi</div>
+      <div class="sidebar-user-dept">Computer Science, Y3</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Main</div>
+    <a href="dashboard.html" class="nav-item active">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </a>
+    <a href="profile.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      My Profile
+    </a>
+    <a href="my-skills.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      My Skills
+    </a>
+    <div class="nav-section-label">Exchange</div>
+    <a href="browse-skills.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Browse Skills
+    </a>
+    <a href="sessions.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Sessions
+      <span class="nav-badge">2</span>
+    </a>
+    <a href="requests.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Requests
+      <span class="nav-badge">3</span>
+    </a>
+    <a href="feedback.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+      Feedback
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <a href="settings.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Settings
+    </a>
+    <a href="login.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Log out
+    </a>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main-wrap">
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="topbar-btn mobile-menu-btn" onclick="openSidebar()">
+        <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div>
+        <div class="topbar-title">Dashboard</div>
+        <div class="breadcrumb" id="topbarGreeting">Welcome back 👋</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <a href="browse-skills.html" class="topbar-btn" title="Search skills">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </a>
+      <a href="requests.html" class="topbar-btn" title="Notifications">
+        <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <div class="notif-dot"></div>
+      </a>
+      <a href="profile.html" class="topbar-avatar">AK</a>
+    </div>
+  </header>
+
+  <!-- CONTENT -->
+  <main class="page-content">
+
+    <!-- WELCOME BANNER -->
+    <div class="welcome-banner">
+      <div class="welcome-text">
+        <p>Saturday, 28 March 2026</p>
+        <h2 id="welcomeH2">Welcome back, <em>loading...</em></h2>
+        <div class="welcome-actions">
+          <a href="my-skills.html" class="btn-accent">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add a skill
+          </a>
+          <a href="browse-skills.html" class="btn-white-outline">Browse skills</a>
+        </div>
+      </div>
+      <div class="welcome-illus">
+        <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="60" cy="60" r="50" stroke="white" stroke-width="1.5" stroke-dasharray="6 4"/>
+          <circle cx="60" cy="60" r="30" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+          <circle cx="60" cy="30" r="8" fill="rgba(232,168,56,0.4)" stroke="rgba(232,168,56,0.7)" stroke-width="1.5"/>
+          <circle cx="87" cy="75" r="8" fill="rgba(29,158,117,0.4)" stroke="rgba(29,158,117,0.7)" stroke-width="1.5"/>
+          <circle cx="33" cy="75" r="8" fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.4)" stroke-width="1.5"/>
+          <line x1="60" y1="38" x2="82" y2="68" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+          <line x1="60" y1="38" x2="38" y2="68" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+          <line x1="82" y1="68" x2="38" y2="68" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- STATS ROW -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-card-top">
+          <div class="stat-icon" style="background:var(--teal-light);">
+            <svg viewBox="0 0 24 24" style="stroke:#0f6e56;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </div>
+          <span class="stat-delta delta-up">+2 this wk</span>
+        </div>
+        <div class="stat-num">14</div>
+        <div class="stat-label">Total sessions</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-top">
+          <div class="stat-icon" style="background:var(--accent-light);">
+            <svg viewBox="0 0 24 24" style="stroke:var(--accent-dark);"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          </div>
+          <span class="stat-delta delta-up">↑ 0.2</span>
+        </div>
+        <div class="stat-num">4.8</div>
+        <div class="stat-label">Avg. rating</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-top">
+          <div class="stat-icon" style="background:#eeedfe;">
+            <svg viewBox="0 0 24 24" style="stroke:#3c3489;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <span class="stat-delta delta-up">+5 new</span>
+        </div>
+        <div class="stat-num">23</div>
+        <div class="stat-label">Connections</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-top">
+          <div class="stat-icon" style="background:var(--coral-light);">
+            <svg viewBox="0 0 24 24" style="stroke:#993c1d;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <span class="stat-delta delta-neutral">3 pending</span>
+        </div>
+        <div class="stat-num">3</div>
+        <div class="stat-label">Open requests</div>
+      </div>
+    </div>
+
+    <!-- GRID ROW 1 -->
+    <div class="grid-2" style="margin-bottom:1.5rem;">
+
+      <!-- Upcoming Sessions -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Upcoming sessions</div>
+          <a href="sessions.html" class="card-action">View all</a>
+        </div>
+        <div class="card-body" id="sessionsCardBody" style="padding-top:0.25rem;">
+          <!-- Populated by JS from API -->
+          <div style="text-align:center;padding:1.5rem;color:var(--text-muted);font-size:.85rem;">
+            Loading sessions…
+          </div>
+        </div>
+      </div>
+
+      <!-- Incoming Requests -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Incoming requests</div>
+          <a href="requests.html" class="card-action">View all</a>
+        </div>
+        <div class="card-body" id="requestsCardBody" style="padding-top:0.25rem;">
+          <!-- Populated by JS from API -->
+          <div style="text-align:center;padding:1.5rem;color:var(--text-muted);font-size:.85rem;">
+            Loading requests…
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GRID ROW 2 -->
+    <div class="grid-2" style="margin-bottom:1.5rem;">
+
+      <!-- My Skills Quick View -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">My skill listings</div>
+          <a href="my-skills.html" class="card-action">Manage</a>
+        </div>
+        <div class="card-body" id="mySkillsCardBody" style="display:flex;flex-direction:column;gap:0.6rem;padding-top:0.5rem;">
+          <!-- Populated by JS from API -->
+          <div style="text-align:center;padding:1.5rem;color:var(--text-muted);font-size:.85rem;">
+            Loading skills…
+          </div>
+        </div>
+      </div>
+
+      <!-- Suggested Matches -->
+      <div class="card" id="suggestedMatchesCard">
+        <div class="card-header">
+          <div class="card-title">Discover skills</div>
+          <a href="browse-skills.html" class="card-action">Browse all</a>
+        </div>
+        <div class="card-body" id="suggestedCardBody" style="display:flex;flex-direction:column;gap:0.75rem;padding-top:0.5rem;">
+          <!-- Populated by JS from API -->
+          <div style="text-align:center;padding:1.5rem;color:var(--text-muted);font-size:.85rem;">
+            Loading suggestions…
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACTIVITY FEED -->
+    <div class="card" id="activityCard">
+      <div class="card-header">
+        <div class="card-title">Recent activity</div>
+      </div>
+      <div class="card-body" id="activityFeedBody" style="padding-top:0;">
+        <!-- Populated by JS from API -->
+        <div style="text-align:center;padding:1.5rem;color:var(--text-muted);font-size:.85rem;">
+          Loading activity…
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+
+<!-- ── SIDEBAR LOGOUT FIX: give the logout link an id ── -->
+<!-- NOTE: We patch this via JS below instead of editing the HTML directly -->
+
+<script src="api.js"></script>
+<script>
+// ── Helper: render empty state ──────────────────────────────────────────
+function emptyState(container, icon, title, subtitle, action = '') {
+  container.innerHTML = `
+    <div style="text-align:center;padding:1.75rem 1rem;">
+      <div style="font-size:1.8rem;margin-bottom:0.4rem;">${icon}</div>
+      <div style="font-weight:600;color:var(--text-main);font-size:.9rem;margin-bottom:0.25rem;">${title}</div>
+      <div style="color:var(--text-muted);font-size:.8rem;">${subtitle}</div>
+      ${action}
+    </div>`;
+}
+
+// ── Helper: time-of-day greeting ────────────────────────────────────────
+function greeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
+(async () => {
+  Auth.requireAuth();
+
+  const user = Auth.getUser();
+  if (!user) { window.location.href = 'login.html'; return; }
+
+  // ── FIX: wire logout to ALL nav links that go to login.html ──────────
+  // The sidebar logout <a> has href="login.html" — intercept it properly
+  document.querySelectorAll('a[href="login.html"]').forEach(el => {
+    el.addEventListener('click', function(e) {
+      e.preventDefault();
+      Auth.clear();
+      window.location.href = 'login.html';
+    });
+  });
+
+  // ── Sidebar & topbar ──────────────────────────────────────────────────
+  populateSidebarUser();
+  populateTopbarAvatar();
+
+  // ── Dynamic greeting + name ───────────────────────────────────────────
+  const firstName = user.name ? user.name.split(' ')[0] : 'there';
+  const greetEl   = document.getElementById('topbarGreeting');
+  if (greetEl) greetEl.textContent = `${greeting()}, ${firstName} 👋`;
+  const welcomeH2 = document.getElementById('welcomeH2');
+  if (welcomeH2) welcomeH2.innerHTML = `Welcome back, <em>${firstName}.</em>`;
+
+  // ── Update the date banner ────────────────────────────────────────────
+  const dateBanner = document.querySelector('.welcome-text p');
+  if (dateBanner) {
+    dateBanner.textContent = new Date().toLocaleDateString('en-GB', {
+      weekday:'long', day:'numeric', month:'long', year:'numeric'
+    });
+  }
+
+  // ── Load all data from backend ────────────────────────────────────────
+  try {
+    const [profile, sessions, incoming, myListings, browsed] = await Promise.all([
+      UserAPI.me(),
+      SessionAPI.all(),
+      RequestAPI.incoming(),
+      SkillAPI.myListings(),
+      SkillAPI.browse(),
+    ]);
+
+    // FIX: Auth.updateUser now exists in api.js
+    Auth.updateUser(profile);
+    populateSidebarUser();
+    populateTopbarAvatar();
+
+    // Re-apply greeting with confirmed name from DB
+    const fn = profile.firstName || user.name.split(' ')[0];
+    if (greetEl) greetEl.textContent = `${greeting()}, ${fn} 👋`;
+    if (welcomeH2) welcomeH2.innerHTML = `Welcome back, <em>${fn}.</em>`;
+
+    // Sidebar dept line
+    const deptEl = document.querySelector('.sidebar-user-dept');
+    if (deptEl) deptEl.textContent =
+      [profile.department, profile.yearOfStudy ? `Y${profile.yearOfStudy}` : null]
+        .filter(Boolean).join(', ') || '';
+
+    // ── Stat cards ─────────────────────────────────────────────────────
+    const statNums = document.querySelectorAll('.stat-num');
+    if (statNums[0]) statNums[0].textContent = profile.totalSessions ?? 0;
+    if (statNums[1]) statNums[1].textContent = profile.averageRating > 0
+      ? Number(profile.averageRating).toFixed(1) : '—';
+    if (statNums[2]) statNums[2].textContent = myListings.length;
+    if (statNums[3]) statNums[3].textContent =
+      incoming.filter(r => r.status === 'PENDING').length;
+
+    // ── Upcoming sessions card ──────────────────────────────────────────
+    const sessContainer = document.getElementById('sessionsCardBody');
+    if (sessContainer) {
+      const upcoming = sessions
+        .filter(s => s.status === 'CONFIRMED')
+        .sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt))
+        .slice(0, 3);
+
+      if (!upcoming.length) {
+        emptyState(sessContainer, '📅', 'No upcoming sessions',
+          'Browse skills and send a session request to get started.',
+          `<a href="browse-skills.html" class="btn btn-primary"
+              style="margin-top:.75rem;font-size:.8rem;padding:.45rem 1rem;">Browse Skills</a>`);
+      } else {
+        sessContainer.innerHTML = upcoming.map(s => {
+          const d = new Date(s.scheduledAt);
+          // FIX: use teacherId (number) to compare with profile.id (number)
+          const isTeaching = s.teacherId === profile.id;
+          const partner    = isTeaching ? s.learnerName : s.teacherName;
+          return `
+          <div class="session-item">
+            <div class="session-time-block">
+              <div class="session-time-day">${d.toLocaleDateString('en-GB',{weekday:'short'})}</div>
+              <div class="session-time-num">${d.getDate()}</div>
+              <div class="session-time-mon">${d.toLocaleDateString('en-GB',{month:'short'})}</div>
+            </div>
+            <div class="session-info">
+              <div class="session-title">${s.skillTitle}</div>
+              <div class="session-meta">
+                <span>with <strong>${partner}</strong></span>
+                <span class="session-dot"></span>
+                <span>${d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}
+                  · ${s.duration || '1 hr'}</span>
+              </div>
+            </div>
+            <div class="session-status">
+              <span class="badge badge-teal">Confirmed</span>
+            </div>
+          </div>`;
+        }).join('');
+      }
+    }
+
+    // ── Incoming requests card ──────────────────────────────────────────
+    const reqContainer = document.getElementById('requestsCardBody');
+    if (reqContainer) {
+      const pending = incoming.filter(r => r.status === 'PENDING');
+      if (!pending.length) {
+        emptyState(reqContainer, '📬', 'No pending requests',
+          'When someone requests a session with you, it will appear here.');
+      } else {
+        reqContainer.innerHTML = pending.slice(0, 3).map(r => `
+          <div class="request-item" id="req-${r.id}">
+            <div class="avatar avatar-sm ${avColor(r.requesterId)}">${initials(r.requesterName)}</div>
+            <div class="request-info">
+              <div class="request-name">${r.requesterName}</div>
+              <div class="request-skill">Wants to learn <strong>${r.skillTitle}</strong></div>
+            </div>
+            <div class="request-actions">
+              <button class="btn-accept" onclick="handleAccept(${r.id})">Accept</button>
+              <button class="btn-decline" onclick="handleDecline(${r.id})">Decline</button>
+            </div>
+          </div>`).join('');
+      }
+    }
+
+    // ── My Skills quick-view card ───────────────────────────────────────
+    const skillsContainer = document.getElementById('mySkillsCardBody');
+    if (skillsContainer) {
+      const catColors = {
+        PROGRAMMING:'teal', DESIGN:'amber', MATHEMATICS:'coral',
+        LANGUAGES:'purple', BUSINESS:'blue', SCIENCE:'green', ARTS:'amber', OTHER:'gray'
+      };
+      if (!myListings.length) {
+        emptyState(skillsContainer, '🎯', 'No skills listed yet',
+          'Share what you know — add your first skill listing.',
+          `<a href="my-skills.html" class="btn btn-primary"
+              style="margin-top:.75rem;font-size:.8rem;padding:.45rem 1rem;">Add a Skill</a>`);
+      } else {
+        const tiles = myListings.slice(0, 3).map(l => {
+          const col = catColors[l.category] || 'teal';
+          return `
+          <a href="my-skills.html" class="skill-tile">
+            <div class="skill-tile-icon" style="background:var(--${col}-light);">
+              <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            </div>
+            <div class="skill-tile-info">
+              <div class="skill-tile-name">${l.title}</div>
+              <div class="skill-tile-sessions">${l.totalSessions ?? 0} sessions · ${l.isActive ? 'Active' : 'Paused'}</div>
+            </div>
+            <div class="skill-tile-rating"><span class="stars">★</span> ${l.averageRating > 0 ? Number(l.averageRating).toFixed(1) : '—'}</div>
+          </a>`;
+        }).join('');
+        skillsContainer.innerHTML = tiles + `
+          <a href="my-skills.html" class="skill-tile" style="border:1.5px dashed var(--border);">
+            <div class="skill-tile-icon" style="background:var(--surface-2);color:var(--text-muted);">
+              <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </div>
+            <div class="skill-tile-info">
+              <div class="skill-tile-name" style="color:var(--text-muted);">Add a skill</div>
+              <div class="skill-tile-sessions">Share what you can teach</div>
+            </div>
+          </a>`;
+      }
+    }
+
+    // ── Discover / Suggested skills card ───────────────────────────────
+    // FIX: backend sends userId + teacherName, NOT ownerId + ownerName
+    const suggestContainer = document.getElementById('suggestedCardBody');
+    if (suggestContainer) {
+      const myListingIds = new Set(myListings.map(l => l.id));
+      const suggestions  = browsed
+        .filter(l => l.userId !== profile.id && !myListingIds.has(l.id))
+        .sort(() => 0.5 - Math.random())
+        .slice(0, 3);
+
+      if (!suggestions.length) {
+        emptyState(suggestContainer, '🔍', 'No suggestions yet',
+          'Browse the full skill catalogue to find peers to learn from.',
+          `<a href="browse-skills.html" class="btn btn-primary"
+              style="margin-top:.75rem;font-size:.8rem;padding:.45rem 1rem;">Browse Skills</a>`);
+      } else {
+        suggestContainer.innerHTML = suggestions.map(l => `
+          <div class="match-card">
+            <div class="avatar avatar-sm ${avColor(l.userId)}">${initials(l.teacherName)}</div>
+            <div class="match-card-info">
+              <div class="match-name">${l.teacherName}</div>
+              <div class="match-skill">Offers: <strong>${l.title}</strong></div>
+              <div class="match-tags">
+                <span class="badge ${categoryBadge(l.category)}">${cap(l.category)}</span>
+                <span class="badge badge-gray">${cap(l.level)}</span>
+              </div>
+            </div>
+            <div class="match-card-action">
+              <a href="browse-skills.html" class="btn btn-ghost-sm">Request</a>
+            </div>
+          </div>`).join('');
+      }
+    }
+
+    // ── Activity feed ───────────────────────────────────────────────────
+    const activityContainer = document.getElementById('activityFeedBody');
+    if (activityContainer) {
+      const events = [];
+
+      sessions.filter(s => s.status === 'COMPLETED').slice(0, 3).forEach(s => {
+        const isTeaching = s.teacherId === profile.id;
+        const partner    = isTeaching ? s.learnerName : s.teacherName;
+        events.push({
+          icon: '✅', iconStyle: 'background:var(--teal-light);color:#0f6e56;',
+          text: `Session completed — <strong>${s.skillTitle}</strong> with ${partner}.`,
+          time: fmtDate(s.scheduledAt),
+        });
+      });
+
+      incoming.filter(r => r.status === 'ACCEPTED').slice(0, 2).forEach(r => {
+        events.push({
+          icon: '📅', iconStyle: 'background:var(--accent-light);color:var(--accent-dark);',
+          text: `<strong>${r.requesterName}</strong> booked a <strong>${r.skillTitle}</strong> session with you.`,
+          time: fmtDate(r.createdAt),
+        });
+      });
+
+      if (!events.length) {
+        emptyState(activityContainer, '🌱', 'No activity yet',
+          'Your sessions, requests and reviews will appear here as you get started.');
+      } else {
+        activityContainer.innerHTML = events.map(ev => `
+          <div class="activity-item">
+            <div class="activity-icon" style="${ev.iconStyle}">
+              <span style="font-size:0.9rem;">${ev.icon}</span>
+            </div>
+            <div class="activity-text">${ev.text}</div>
+            <div class="activity-time">${ev.time}</div>
+          </div>`).join('');
+      }
+    }
+
+  } catch (err) {
+    console.error('Dashboard load error:', err);
+    ['sessionsCardBody','requestsCardBody','mySkillsCardBody','suggestedCardBody','activityFeedBody'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) emptyState(el, '⚠️', 'Could not load data',
+        'Please make sure the backend is running on port 8080, then refresh.');
+    });
+  }
+})();
+
+// ── Request action handlers ─────────────────────────────────────────────
+async function handleAccept(id) {
+  try {
+    await RequestAPI.respond(id, { action: 'ACCEPTED' });
+    const el = document.getElementById(`req-${id}`);
+    if (el) el.querySelector('.request-actions').innerHTML =
+      '<span class="badge badge-teal">Accepted ✓</span>';
+    showToast('Request accepted — session confirmed!');
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function handleDecline(id) {
+  try {
+    await RequestAPI.respond(id, { action: 'DECLINED' });
+    const el = document.getElementById(`req-${id}`);
+    if (el) {
+      el.style.opacity = '0.4';
+      el.querySelector('.request-actions').innerHTML =
+        '<span class="badge badge-gray">Declined</span>';
+    }
+    showToast('Request declined.');
+  } catch (e) { showToast(e.message, 'error'); }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Requests — SkillSwap</title>
+<link rel="stylesheet" href="dashboard-shell.css">
+<style>
+  /* ── TABS ── */
+  .tabs {
+    display: flex; gap: 0; background: var(--white);
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 4px; width: fit-content; margin-bottom: 1.75rem;
+  }
+  .tab {
+    padding: 0.5rem 1.2rem; border-radius: 7px; font-size: 0.875rem;
+    font-weight: 500; color: var(--text-muted); cursor: pointer;
+    transition: all 0.18s; border: none; background: transparent;
+    font-family: 'DM Sans', sans-serif; display: flex; align-items: center; gap: 7px;
+  }
+  .tab:hover { color: var(--text-main); }
+  .tab.active { background: var(--primary); color: var(--white); }
+  .tab-badge {
+    font-size: 0.68rem; font-weight: 700; padding: 1px 6px; border-radius: 100px;
+    line-height: 1.4;
+  }
+  .tab.active .tab-badge { background: rgba(255,255,255,0.2); color: var(--white); }
+  .tab:not(.active) .tab-badge { background: var(--coral-light); color: var(--coral); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── REQUEST CARD ── */
+  .request-card {
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: 14px; overflow: hidden; transition: all 0.2s;
+    margin-bottom: 1rem;
+  }
+  .request-card:hover { box-shadow: 0 4px 18px rgba(26,26,46,0.07); }
+  .request-card-inner { display: flex; align-items: stretch; }
+  .request-accent { width: 4px; flex-shrink: 0; }
+  .request-body { padding: 1.2rem 1.4rem; flex: 1; min-width: 0; }
+
+  /* header row */
+  .req-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 0.9rem; flex-wrap: wrap; }
+  .req-header-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .req-user-info { min-width: 0; }
+  .req-user-name { font-size: 0.95rem; font-weight: 700; color: var(--primary); }
+  .req-user-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 1px; }
+  .req-header-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .req-time { font-size: 0.75rem; color: var(--text-muted); }
+
+  /* detail pills row */
+  .req-details { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
+  .req-detail-item {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 0.8rem; color: var(--text-muted);
+    background: var(--surface); padding: 0.35rem 0.75rem;
+    border-radius: 100px;
+  }
+  .req-detail-item svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; flex-shrink: 0; }
+  .req-detail-item strong { color: var(--text-main); }
+
+  /* message */
+  .req-message {
+    background: var(--surface); border-left: 3px solid var(--border-2);
+    border-radius: 0 8px 8px 0; padding: 0.75rem 1rem;
+    font-size: 0.83rem; color: var(--text-muted); line-height: 1.6;
+    margin-bottom: 1rem; font-style: italic;
+  }
+
+  /* footer actions */
+  .req-footer { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding-top: 0.9rem; border-top: 1px solid var(--border); flex-wrap: wrap; }
+  .req-footer-left { display: flex; gap: 6px; flex-wrap: wrap; }
+  .req-footer-right { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  .btn-accept {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 0.5rem 1.1rem; background: var(--teal); color: var(--white);
+    border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.18s;
+  }
+  .btn-accept:hover { background: #0f6e56; transform: translateY(-1px); }
+  .btn-accept svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+  .btn-decline {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 0.5rem 1.1rem; background: transparent; color: var(--coral);
+    border: 1.5px solid rgba(216,90,48,0.25); border-radius: 8px;
+    font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 600;
+    cursor: pointer; transition: all 0.18s;
+  }
+  .btn-decline:hover { background: var(--coral-light); border-color: var(--coral); }
+  .btn-decline svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+  .btn-propose {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 0.5rem 1.1rem; background: transparent; color: var(--text-main);
+    border: 1.5px solid var(--border); border-radius: 8px;
+    font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 500;
+    cursor: pointer; transition: all 0.18s;
+  }
+  .btn-propose:hover { border-color: var(--primary); color: var(--primary); }
+  .btn-propose svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+  /* outgoing request state */
+  .req-status-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 0.8rem; font-weight: 600; padding: 0.4rem 0.85rem;
+    border-radius: 100px;
+  }
+  .req-pending-chip { background: var(--accent-light); color: var(--accent-dark); }
+  .req-accepted-chip { background: var(--teal-light); color: #0f6e56; }
+  .req-declined-chip { background: var(--coral-light); color: var(--coral); }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.7; }
+
+  /* empty state */
+  .empty-state {
+    text-align: center; padding: 4rem 2rem;
+    background: var(--white); border: 1px solid var(--border); border-radius: 14px;
+  }
+  .empty-icon-wrap {
+    width: 56px; height: 56px; border-radius: 14px;
+    background: var(--surface-2); margin: 0 auto 1rem;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .empty-icon-wrap svg { width: 24px; height: 24px; stroke: var(--text-muted); fill: none; stroke-width: 1.5; }
+  .empty-state h3 { font-size: 1rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.4rem; }
+  .empty-state p { font-size: 0.85rem; color: var(--text-muted); max-width: 320px; margin: 0 auto 1.25rem; }
+
+  /* propose new time modal */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 500; align-items: center; justify-content: center; padding: 1rem; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--white); border-radius: 16px; width: 100%; max-width: 460px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
+  .modal-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--white); z-index: 1; }
+  .modal-title { font-size: 1rem; font-weight: 600; color: var(--text-main); }
+  .modal-close { width: 32px; height: 32px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.1rem; color: var(--text-muted); transition: all 0.18s; }
+  .modal-close:hover { background: var(--surface-2); }
+  .modal-body { padding: 1.5rem; }
+  .modal-footer { padding: 1rem 1.5rem; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 0.75rem; }
+
+  /* Info banner */
+  .info-banner {
+    display: flex; align-items: flex-start; gap: 10px;
+    background: var(--accent-light); border: 1px solid rgba(232,168,56,0.25);
+    border-radius: 10px; padding: 0.85rem 1rem;
+    margin-bottom: 1.5rem; font-size: 0.83rem; color: var(--accent-dark);
+  }
+  .info-banner svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; flex-shrink: 0; margin-top: 1px; }
+
+  /* Toast */
+  .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 999; background: var(--primary); color: var(--white); padding: 0.85rem 1.25rem; border-radius: 10px; font-size: 0.875rem; font-weight: 500; display: flex; align-items: center; gap: 8px; transform: translateY(80px); opacity: 0; transition: all 0.3s ease; pointer-events: none; box-shadow: 0 4px 20px rgba(26,26,46,0.2); }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast svg { width: 16px; height: 16px; stroke: var(--accent); fill: none; stroke-width: 2.5; }
+
+  /* Decline reason */
+  .reason-chips { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .reason-chip {
+    padding: 0.38rem 0.85rem; border-radius: 100px; font-size: 0.8rem;
+    font-weight: 500; border: 1.5px solid var(--border); background: var(--white);
+    color: var(--text-muted); cursor: pointer; transition: all 0.18s;
+  }
+  .reason-chip:hover { border-color: var(--coral); color: var(--coral); }
+  .reason-chip.selected { background: var(--coral-light); color: var(--coral); border-color: var(--coral); }
+</style>
+</head>
+<body>
+
+<div class="sidebar-overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <a href="index.html" class="sidebar-logo">
+      <div class="logo-dot"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg></div>
+      SkillSwap
+    </a>
+  </div>
+  <div class="sidebar-user">
+    <div class="sidebar-avatar">AK</div>
+    <div class="sidebar-user-info">
+      <div class="sidebar-user-name">Amara Kofi</div>
+      <div class="sidebar-user-dept">Computer Science, Y3</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Main</div>
+    <a href="dashboard.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</a>
+    <a href="profile.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>My Profile</a>
+    <a href="my-skills.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>My Skills</a>
+    <div class="nav-section-label">Exchange</div>
+    <a href="browse-skills.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Browse Skills</a>
+    <a href="sessions.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Sessions<span class="nav-badge">2</span></a>
+    <a href="requests.html" class="nav-item active"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Requests<span class="nav-badge">3</span></a>
+    <a href="feedback.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>Feedback</a>
+  </nav>
+  <div class="sidebar-footer">
+    <a href="login.html" class="nav-item"><svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Log out</a>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main-wrap">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="topbar-btn mobile-menu-btn" onclick="openSidebar()">
+        <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div>
+        <div class="topbar-title">Requests</div>
+        <div class="breadcrumb"><a href="dashboard.html">Dashboard</a> / Requests</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <a href="browse-skills.html" class="btn btn-primary">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New request
+      </a>
+    </div>
+  </header>
+
+  <main class="page-content">
+
+    <!-- STATS -->
+    <div class="stats-row" style="margin-bottom:1.75rem;">
+      <div class="stat-card">
+        <div class="stat-card-top">
+          <div class="stat-icon" style="background:var(--coral-light);">
+            <svg viewBox="0 0 24 24" style="stroke:var(--coral);fill:none;stroke-width:2;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <span class="stat-delta" style="background:var(--coral-light);color:var(--coral);">Needs action</span>
+        </div>
+        <div class="stat-num">3</div>
+        <div class="stat-label">Incoming requests</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-top">
+          <div class="stat-icon" style="background:var(--accent-light);">
+            <svg viewBox="0 0 24 24" style="stroke:var(--accent-dark);fill:none;stroke-width:2;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </div>
+          <span class="stat-delta delta-neutral">Awaiting reply</span>
+        </div>
+        <div class="stat-num">2</div>
+        <div class="stat-label">Outgoing sent</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-top">
+          <div class="stat-icon" style="background:var(--teal-light);">
+            <svg viewBox="0 0 24 24" style="stroke:#0f6e56;fill:none;stroke-width:2;"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          </div>
+          <span class="stat-delta delta-up">This month</span>
+        </div>
+        <div class="stat-num">8</div>
+        <div class="stat-label">Accepted total</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-top">
+          <div class="stat-icon" style="background:var(--surface-2);">
+            <svg viewBox="0 0 24 24" style="stroke:var(--text-muted);fill:none;stroke-width:2;"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          </div>
+          <span class="stat-delta delta-neutral">—</span>
+        </div>
+        <div class="stat-num">1</div>
+        <div class="stat-label">Declined</div>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('incoming', this)">
+        Incoming
+        <span class="tab-badge">3</span>
+      </button>
+      <button class="tab" onclick="switchTab('outgoing', this)">
+        Outgoing
+        <span class="tab-badge" style="background:var(--surface-2);color:var(--text-muted);">2</span>
+      </button>
+      <button class="tab" onclick="switchTab('archived', this)">
+        Archived
+        <span class="tab-badge" style="background:var(--surface-2);color:var(--text-muted);">4</span>
+      </button>
+    </div>
+
+    <!-- ── INCOMING TAB ── -->
+    <div class="tab-panel active" id="tab-incoming">
+
+      <div class="info-banner">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        You have <strong>3 pending requests</strong> waiting for your response. Students are notified when you act — please respond promptly.
+      </div>
+
+      <!-- Request 1 -->
+      <div class="request-card" id="req1">
+        <div class="request-card-inner">
+          <div class="request-accent" style="background:var(--coral);"></div>
+          <div class="request-body">
+            <div class="req-header">
+              <div class="req-header-left">
+                <div class="avatar avatar-md av-coral">DS</div>
+                <div class="req-user-info">
+                  <div class="req-user-name">Daniel Simiyu</div>
+                  <div class="req-user-meta">Business Administration · Year 2 · Student ID: BA/2023/041</div>
+                </div>
+              </div>
+              <div class="req-header-right">
+                <span class="badge badge-coral">New</span>
+                <span class="req-time">2 hours ago</span>
+              </div>
+            </div>
+
+            <div class="req-details">
+              <div class="req-detail-item">
+                <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                Wants to learn: <strong>Python Programming</strong>
+              </div>
+              <div class="req-detail-item">
+                <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Proposed: <strong>Wed, 1 April 2026 at 3:00 PM</strong>
+              </div>
+              <div class="req-detail-item">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <strong>1 hour</strong>
+              </div>
+              <div class="req-detail-item">
+                <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                In-person (campus)
+              </div>
+            </div>
+
+            <div class="req-message">
+              "Hi Amara! I'm really struggling with Python for my data science elective. Specifically I need help understanding Pandas DataFrames and how to do groupby operations. Could we schedule a session this week? I can offer Financial Accounting tutoring in return."
+            </div>
+
+            <div class="req-footer">
+              <div class="req-footer-left">
+                <span class="badge badge-amber" style="font-size:0.72rem;">Offers: Financial Accounting</span>
+                <span class="badge badge-gray" style="font-size:0.72rem;">Rating: 4.6 ★</span>
+              </div>
+              <div class="req-footer-right">
+                <button class="btn-propose" onclick="openProposeModal('Daniel Simiyu', 'Python Programming')">
+                  <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  Propose new time
+                </button>
+                <button class="btn-decline" onclick="openDeclineModal('req1')">
+                  <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  Decline
+                </button>
+                <button class="btn-accept" onclick="acceptRequest('req1')">
+                  <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/></svg>
+                  Accept
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Request 2 -->
+      <div class="request-card" id="req2">
+        <div class="request-card-inner">
+          <div class="request-accent" style="background:var(--accent);"></div>
+          <div class="request-body">
+            <div class="req-header">
+              <div class="req-header-left">
+                <div class="avatar avatar-md av-green">FO</div>
+                <div class="req-user-info">
+                  <div class="req-user-name">Faith Otieno</div>
+                  <div class="req-user-meta">Biology · Year 3 · 4.9 ★ teacher</div>
+                </div>
+              </div>
+              <div class="req-header-right">
+                <span class="badge badge-coral">New</span>
+                <span class="req-time">Yesterday</span>
+              </div>
+            </div>
+
+            <div class="req-details">
+              <div class="req-detail-item">
+                <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                Wants to learn: <strong>Data Analysis</strong>
+              </div>
+              <div class="req-detail-item">
+                <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Proposed: <strong>Sat, 5 April 2026 at 2:00 PM</strong>
+              </div>
+              <div class="req-detail-item">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <strong>1.5 hours</strong>
+              </div>
+              <div class="req-detail-item">
+                <svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                Online (Zoom)
+              </div>
+            </div>
+
+            <div class="req-message">
+              "Hey Amara, I've been analysing research data for my biology project using Excel but I keep getting confused with pivot tables and creating proper charts. I'd love a session on Pandas too if possible. I can teach you Cell Biology in exchange!"
+            </div>
+
+            <div class="req-footer">
+              <div class="req-footer-left">
+                <span class="badge badge-green" style="font-size:0.72rem;">Offers: Cell Biology</span>
+                <span class="badge badge-gray" style="font-size:0.72rem;">4 sessions taught</span>
+              </div>
+              <div class="req-footer-right">
+                <button class="btn-propose" onclick="openProposeModal('Faith Otieno', 'Data Analysis')">
+                  <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  Propose new time
+                </button>
+                <button class="btn-decline" onclick="openDeclineModal('req2')">
+                  <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  Decline
+                </button>
+                <button class="btn-accept" onclick="acceptRequest('req2')">
+                  <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/></svg>
+                  Accept
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Request 3 -->
+      <div class="request-card" id="req3">
+        <div class="request-card-inner">
+          <div class="request-accent" style="background:#534ab7;"></div>
+          <div class="request-body">
+            <div class="req-header">
+              <div class="req-header-left">
+                <div class="avatar avatar-md av-blue">JO</div>
+                <div class="req-user-info">
+                  <div class="req-user-name">James Odhiambo</div>
+                  <div class="req-user-meta">Business Administration · Year 2</div>
+                </div>
+              </div>
+              <div class="req-header-right">
+                <span class="badge badge-amber">Seen</span>
+                <span class="req-time">2 days ago</span>
+              </div>
+            </div>
+
+            <div class="req-details">
+              <div class="req-detail-item">
+                <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                Wants to learn: <strong>Python Programming</strong>
+              </div>
+              <div class="req-detail-item">
+                <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Proposed: <strong>Fri, 3 April 2026 at 10:00 AM</strong>
+              </div>
+              <div class="req-detail-item">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <strong>1 hour</strong>
+              </div>
+              <div class="req-detail-item">
+                <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                Either works
+              </div>
+            </div>
+
+            <div class="req-message">
+              "Amara, I took an intro Python course last semester but I'm completely lost with OOP concepts — classes, inheritance, and all that. I want to build a simple project but don't know where to start. Can you help? I'm also offering Spanish language lessons in exchange."
+            </div>
+
+            <div class="req-footer">
+              <div class="req-footer-left">
+                <span class="badge badge-purple" style="font-size:0.72rem;">Offers: Spanish Language</span>
+                <span class="badge badge-gray" style="font-size:0.72rem;">First session</span>
+              </div>
+              <div class="req-footer-right">
+                <button class="btn-propose" onclick="openProposeModal('James Odhiambo', 'Python Programming')">
+                  <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  Propose new time
+                </button>
+                <button class="btn-decline" onclick="openDeclineModal('req3')">
+                  <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  Decline
+                </button>
+                <button class="btn-accept" onclick="acceptRequest('req3')">
+                  <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/></svg>
+                  Accept
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Empty state (hidden until all dismissed) -->
+      <div class="empty-state" id="incomingEmpty" style="display:none;">
+        <div class="empty-icon-wrap"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+        <h3>All caught up!</h3>
+        <p>No pending incoming requests right now. When students request sessions from you, they'll appear here.</p>
+        <a href="browse-skills.html" class="btn btn-primary" style="display:inline-flex;">Browse skills</a>
+      </div>
+
+    </div>
+
+    <!-- ── OUTGOING TAB ── -->
+    <div class="tab-panel" id="tab-outgoing">
+
+      <!-- Outgoing request 1 — pending -->
+      <div class="request-card">
+        <div class="request-card-inner">
+          <div class="request-accent" style="background:var(--accent);"></div>
+          <div class="request-body">
+            <div class="req-header">
+              <div class="req-header-left">
+                <div class="avatar avatar-md av-amber">MJ</div>
+                <div class="req-user-info">
+                  <div class="req-user-name">Maya Juma</div>
+                  <div class="req-user-meta">Design & Media · Year 2</div>
+                </div>
+              </div>
+              <div class="req-header-right">
+                <div class="req-status-chip req-pending-chip">
+                  <div class="status-dot"></div> Awaiting response
+                </div>
+                <span class="req-time">1 day ago</span>
+              </div>
+            </div>
+
+            <div class="req-details">
+              <div class="req-detail-item">
+                <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                Requesting: <strong>UI/UX Design</strong>
+              </div>
+              <div class="req-detail-item">
+                <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Proposed: <strong>Thu, 2 April 2026 at 4:30 PM</strong>
+              </div>
+              <div class="req-detail-item">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <strong>1.5 hours</strong>
+              </div>
+              <div class="req-detail-item">
+                <svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                Online (Google Meet)
+              </div>
+            </div>
+            <div class="req-message">
+              "Hi Maya! I'd love to learn Figma fundamentals — specifically component design and creating a basic design system. I'm a developer and want to improve my UI skills."
+            </div>
+            <div class="req-footer">
+              <div class="req-footer-left">
+                <span class="badge badge-gray" style="font-size:0.72rem;">Sent 1 day ago</span>
+              </div>
+              <div class="req-footer-right">
+                <button class="btn-propose" style="color:var(--coral);border-color:rgba(216,90,48,0.25);" onclick="cancelOutgoing(this)">
+                  <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  Withdraw request
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Outgoing request 2 — pending -->
+      <div class="request-card">
+        <div class="request-card-inner">
+          <div class="request-accent" style="background:var(--teal);"></div>
+          <div class="request-body">
+            <div class="req-header">
+              <div class="req-header-left">
+                <div class="avatar avatar-md av-purple">BW</div>
+                <div class="req-user-info">
+                  <div class="req-user-name">Beatrice Wanjiku</div>
+                  <div class="req-user-meta">Communication · Year 3</div>
+                </div>
+              </div>
+              <div class="req-header-right">
+                <div class="req-status-chip req-pending-chip">
+                  <div class="status-dot"></div> Awaiting response
+                </div>
+                <span class="req-time">3 days ago</span>
+              </div>
+            </div>
+            <div class="req-details">
+              <div class="req-detail-item">
+                <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                Requesting: <strong>French Language</strong>
+              </div>
+              <div class="req-detail-item">
+                <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Proposed: <strong>Sat, 5 April 2026 at 10:00 AM</strong>
+              </div>
+              <div class="req-detail-item">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <strong>1 hour</strong>
+              </div>
+            </div>
+            <div class="req-message">
+              "Bonjour Beatrice! I'm a complete beginner and want to start learning French conversational basics. I can offer Python sessions in return. Très excitée!"
+            </div>
+            <div class="req-footer">
+              <div class="req-footer-left">
+                <span class="badge badge-gray" style="font-size:0.72rem;">Sent 3 days ago</span>
+              </div>
+              <div class="req-footer-right">
+                <button class="btn-propose" style="color:var(--coral);border-color:rgba(216,90,48,0.25);" onclick="cancelOutgoing(this)">
+                  <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  Withdraw request
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ARCHIVED TAB ── -->
+    <div class="tab-panel" id="tab-archived">
+      <div class="card">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>Skill requested</th>
+              <th>Proposed date</th>
+              <th>Direction</th>
+              <th>Outcome</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div class="flex-center"><div class="avatar avatar-sm av-teal" style="font-size:0.65rem;">AO</div><span>Alex Omondi</span></div></td>
+              <td>Python Programming</td>
+              <td style="color:var(--text-muted);font-size:0.82rem;">Mar 20, 2026</td>
+              <td><span class="badge badge-purple">Incoming</span></td>
+              <td><span class="badge badge-teal">Accepted → Completed</span></td>
+            </tr>
+            <tr>
+              <td><div class="flex-center"><div class="avatar avatar-sm av-coral" style="font-size:0.65rem;">TN</div><span>Tom Ndege</span></div></td>
+              <td>Data Analysis</td>
+              <td style="color:var(--text-muted);font-size:0.82rem;">Mar 15, 2026</td>
+              <td><span class="badge badge-blue">Outgoing</span></td>
+              <td><span class="badge badge-teal">Accepted → Completed</span></td>
+            </tr>
+            <tr>
+              <td><div class="flex-center"><div class="avatar avatar-sm av-amber" style="font-size:0.65rem;">RK</div><span>Rachel Kamau</span></div></td>
+              <td>Python Programming</td>
+              <td style="color:var(--text-muted);font-size:0.82rem;">Mar 8, 2026</td>
+              <td><span class="badge badge-purple">Incoming</span></td>
+              <td><span class="badge badge-coral">Declined</span></td>
+            </tr>
+            <tr>
+              <td><div class="flex-center"><div class="avatar avatar-sm av-green" style="font-size:0.65rem;">KM</div><span>Kevin Maina</span></div></td>
+              <td>JavaScript & React</td>
+              <td style="color:var(--text-muted);font-size:0.82rem;">Feb 25, 2026</td>
+              <td><span class="badge badge-blue">Outgoing</span></td>
+              <td><span class="badge badge-teal">Accepted → Completed</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- PROPOSE NEW TIME MODAL -->
+<div class="modal-overlay" id="proposeModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Propose a new time</div>
+      <div class="modal-close" onclick="closeModal('proposeModal')">✕</div>
+    </div>
+    <div class="modal-body">
+      <div style="padding:0.85rem 1rem;background:var(--surface);border-radius:9px;margin-bottom:1.25rem;font-size:0.85rem;color:var(--text-muted);">
+        Proposing alternative time for <strong id="proposeUser" style="color:var(--text-main);">Student</strong> — <span id="proposeSkill" style="color:var(--primary);font-weight:600;">Skill</span>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Your available date *</label>
+        <input type="date" class="form-input" id="proposeDate">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Start time *</label>
+          <input type="time" class="form-input" id="proposeTime">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Duration</label>
+          <select class="form-input">
+            <option>30 minutes</option><option selected>1 hour</option><option>1.5 hours</option><option>2 hours</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Note to student</label>
+        <textarea class="form-input" rows="3" placeholder="Let them know why you're proposing a different time, or confirm the topic you'll cover…"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('proposeModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="sendProposal()">Send proposal</button>
+    </div>
+  </div>
+</div>
+
+<!-- DECLINE MODAL -->
+<div class="modal-overlay" id="declineModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Decline request</div>
+      <div class="modal-close" onclick="closeModal('declineModal')">✕</div>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:0.875rem;color:var(--text-muted);margin-bottom:1.1rem;line-height:1.6;">
+        The student will be notified that you've declined. Optionally, choose a reason so they understand.
+      </p>
+      <div class="form-group">
+        <label class="form-label">Reason (optional)</label>
+        <div class="reason-chips">
+          <div class="reason-chip" onclick="selectReason(this)">Not available then</div>
+          <div class="reason-chip" onclick="selectReason(this)">Schedule too full</div>
+          <div class="reason-chip" onclick="selectReason(this)">Topic out of my depth</div>
+          <div class="reason-chip" onclick="selectReason(this)">Not a good match</div>
+          <div class="reason-chip" onclick="selectReason(this)">Prefer different format</div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Additional message (optional)</label>
+        <textarea class="form-input" id="declineNote" rows="2" placeholder="Let them know if they should try again another time…"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('declineModal')">Cancel</button>
+      <button class="btn btn-danger" onclick="confirmDecline()">Confirm decline</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/></svg>
+  <span id="toastMsg">Done!</span>
+</div>
+
+
+<script src="api.js"></script>
+<script>
+  let pendingDeclineId = null;
+  let incomingCount = 0;
+
+  function openSidebar() { document.getElementById('sidebar').classList.add('open'); document.getElementById('overlay').classList.add('open'); }
+  function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); }
+  function openModal(id) { document.getElementById(id).classList.add('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+  function switchTab(name, btn) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + name).classList.add('active');
+  }
+
+  function openProposeModal(user, skill) {
+    document.getElementById('proposeUser').textContent = user;
+    document.getElementById('proposeSkill').textContent = skill;
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('proposeDate').min = today;
+    openModal('proposeModal');
+  }
+
+  function sendProposal() { closeModal('proposeModal'); showToast('New time proposal sent!'); }
+
+  function selectReason(el) {
+    document.querySelectorAll('.reason-chip').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  document.querySelectorAll('.modal-overlay').forEach(m => {
+    m.addEventListener('click', function(e) { if (e.target === this) this.classList.remove('open'); });
+  });
+
+  // ── FIX: logout ─────────────────────────────────────────────────────
+  document.querySelectorAll('a[href="login.html"]').forEach(el => {
+    el.addEventListener('click', e => { e.preventDefault(); Auth.clear(); window.location.href = 'login.html'; });
+  });
+
+  // ── Load requests from API ───────────────────────────────────────────
+  (async () => {
+    Auth.requireAuth();
+    populateSidebarUser();
+    populateTopbarAvatar();
+
+    try { const p = await UserAPI.me(); const dept = document.querySelector('.sidebar-user-dept'); if (dept) dept.textContent = [p.department, p.yearOfStudy ? 'Y'+p.yearOfStudy : null].filter(Boolean).join(', '); } catch(_) {}
+
+    try {
+      const [incoming, outgoing] = await Promise.all([
+        RequestAPI.incoming(),
+        RequestAPI.outgoing(),
+      ]);
+
+      const pending = incoming.filter(r => r.status === 'PENDING');
+      incomingCount = pending.length;
+
+      const statNums = document.querySelectorAll('.stat-num');
+      if (statNums[0]) statNums[0].textContent = pending.length;
+      if (statNums[1]) statNums[1].textContent = outgoing.filter(r => r.status === 'PENDING').length;
+
+      // Clear hardcoded demo cards, inject real ones
+      const incomingPanel = document.getElementById('tab-incoming');
+      incomingPanel.querySelectorAll('.request-card').forEach(c => c.remove());
+
+      if (!pending.length) {
+        const emptyEl = document.getElementById('incomingEmpty');
+        if (emptyEl) emptyEl.style.display = 'block';
+      } else {
+        pending.forEach(r => {
+          const div = document.createElement('div');
+          div.className = 'request-card';
+          div.id = `req-live-${r.id}`;
+          div.innerHTML = `
+            <div class="request-card-inner">
+              <div class="request-accent" style="background:var(--coral);"></div>
+              <div class="request-body">
+                <div class="req-header">
+                  <div class="req-header-left">
+                    <div class="avatar avatar-md ${avColor(r.requesterId)}">${initials(r.requesterName)}</div>
+                    <div class="req-user-info">
+                      <div class="req-user-name">${r.requesterName}</div>
+                      <div class="req-user-meta">Proposed: ${fmtDateTime(r.proposedDatetime)}</div>
+                    </div>
+                  </div>
+                  <div class="req-header-right">
+                    <span class="badge badge-coral">Pending</span>
+                    <span class="req-time">${fmtDate(r.createdAt)}</span>
+                  </div>
+                </div>
+                <div class="req-details">
+                  <div class="req-detail-item">
+                    <svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;width:13px;height:13px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    Wants to learn: <strong>${r.skillTitle}</strong>
+                  </div>
+                  <div class="req-detail-item">
+                    <svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;width:13px;height:13px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    <strong>${r.duration || '1 hr'}</strong>
+                  </div>
+                </div>
+                ${r.focusMessage ? `<div class="req-message">"${r.focusMessage}"</div>` : ''}
+                <div class="req-footer">
+                  <div class="req-footer-left"></div>
+                  <div class="req-footer-right">
+                    <button class="btn-decline" onclick="liveDecline(${r.id})">Decline</button>
+                    <button class="btn-accept" onclick="liveAccept(${r.id})">Accept</button>
+                  </div>
+                </div>
+              </div>
+            </div>`;
+          const emptyEl = document.getElementById('incomingEmpty');
+          incomingPanel.insertBefore(div, emptyEl);
+        });
+      }
+
+      // Outgoing pending requests
+      const outPanel = document.getElementById('tab-outgoing');
+      outPanel.querySelectorAll('.request-card').forEach(c => c.remove());
+      const pendingOut = outgoing.filter(r => r.status === 'PENDING');
+      if (!pendingOut.length) {
+        outPanel.innerHTML += '<div style="text-align:center;padding:2rem;color:var(--text-muted);font-size:0.875rem;">No outgoing requests. <a href="browse-skills.html" style="color:var(--accent-dark);">Browse skills</a> to send one.</div>';
+      } else {
+        pendingOut.forEach(r => {
+          const div = document.createElement('div');
+          div.className = 'request-card';
+          div.innerHTML = `
+            <div class="request-card-inner">
+              <div class="request-accent" style="background:var(--accent);"></div>
+              <div class="request-body">
+                <div class="req-header">
+                  <div class="req-header-left">
+                    <div class="req-user-info">
+                      <div class="req-user-name">Request for: <strong>${r.skillTitle}</strong></div>
+                      <div class="req-user-meta">To: ${r.teacherName} · Proposed: ${fmtDateTime(r.proposedDatetime)}</div>
+                    </div>
+                  </div>
+                  <div class="req-header-right">
+                    <div class="req-status-chip req-pending-chip"><div class="status-dot"></div> Awaiting response</div>
+                  </div>
+                </div>
+                ${r.focusMessage ? `<div class="req-message">"${r.focusMessage}"</div>` : ''}
+                <div class="req-footer">
+                  <div class="req-footer-left"><span class="badge badge-gray">Sent ${fmtDate(r.createdAt)}</span></div>
+                  <div class="req-footer-right">
+                    <button class="btn-propose" style="color:var(--coral);border-color:rgba(216,90,48,0.25);" onclick="liveWithdraw(${r.id},this)">Withdraw request</button>
+                  </div>
+                </div>
+              </div>
+            </div>`;
+          outPanel.appendChild(div);
+        });
+      }
+
+      // Archived tab — all non-pending
+      const archBody = document.querySelector('#tab-archived tbody');
+      if (archBody) {
+        const archived = [...incoming, ...outgoing].filter(r => r.status !== 'PENDING');
+        if (archived.length) {
+          archBody.innerHTML = archived.map(r => {
+            const dir = outgoing.find(o => o.id === r.id) ? 'Outgoing' : 'Incoming';
+            const dirClass = dir === 'Outgoing' ? 'badge-blue' : 'badge-purple';
+            const outcomeMap = { ACCEPTED:'badge-teal', DECLINED:'badge-coral', WITHDRAWN:'badge-gray' };
+            return `<tr>
+              <td><strong>${dir === 'Outgoing' ? r.teacherName : r.requesterName}</strong></td>
+              <td>${r.skillTitle}</td>
+              <td style="color:var(--text-muted);font-size:0.82rem;">${fmtDate(r.proposedDatetime)}</td>
+              <td><span class="badge ${dirClass}">${dir}</span></td>
+              <td><span class="badge ${outcomeMap[r.status] || 'badge-gray'}">${cap(r.status)}</span></td>
+            </tr>`;
+          }).join('');
+        }
+      }
+
+    } catch(e) {
+      console.error('Requests load error:', e);
+      showToast('Could not load requests — is the backend running?', 'error');
+    }
+  })();
+
+  async function liveAccept(id) {
+    try {
+      await RequestAPI.respond(id, { action: 'ACCEPTED' });
+      const card = document.getElementById(`req-live-${id}`);
+      if (card) { card.style.opacity = '0'; card.style.transition = 'opacity 0.3s'; setTimeout(() => card.remove(), 300); }
+      showToast('Request accepted! Session is now confirmed.');
+      incomingCount--;
+      if (incomingCount <= 0) { const e = document.getElementById('incomingEmpty'); if(e) e.style.display = 'block'; }
+    } catch(e) { showToast(e.message, 'error'); }
+  }
+
+  async function liveDecline(id) { pendingDeclineId = id; openModal('declineModal'); }
+
+  window.confirmDecline = async function() {
+    if (!pendingDeclineId) return;
+    const note   = document.getElementById('declineNote').value.trim();
+    const reason = document.querySelector('.reason-chip.selected')?.textContent || note;
+    try {
+      await RequestAPI.respond(pendingDeclineId, { action: 'DECLINED', declineReason: reason });
+      const card = document.getElementById(`req-live-${pendingDeclineId}`);
+      if (card) { card.style.opacity = '0'; card.style.transition = 'opacity 0.3s'; setTimeout(() => card.remove(), 300); }
+      closeModal('declineModal');
+      showToast('Request declined.');
+    } catch(e) { showToast(e.message, 'error'); }
+    pendingDeclineId = null;
+  };
+
+  async function liveWithdraw(id, btn) {
+    try {
+      await RequestAPI.withdraw(id);
+      const card = btn.closest('.request-card');
+      card.style.opacity = '0'; card.style.transition = 'opacity 0.3s';
+      setTimeout(() => card.remove(), 300);
+      showToast('Request withdrawn.');
+    } catch(e) { showToast(e.message, 'error'); }
+  }
+</script>
+</body>
+</html>
