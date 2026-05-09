@@ -1,8 +1,8 @@
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/skillswap
-    username: postgres
-    password: 11206117001
+    username: "input your database name"
+    password: "input your database password"
     driver-class-name: org.postgresql.Driver
 
   jpa:
