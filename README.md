@@ -21,7 +21,6 @@
 - [Database Schema](#database-schema)
 - [How It Works](#how-it-works)
 - [Security](#security)
-- [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -95,7 +94,7 @@ SkillSwap/
 │   ├── dashboard-shell.css             # Shared styles for student pages
 │   └── admin-shell.css                 # Shared styles for admin pages
 │
-└── skillswap/                          # Spring Boot backend (Maven project)
+└── backend/                          # Spring Boot backend (Maven project)
     ├── pom.xml
     └── src/main/
         ├── java/com/skillswap/
@@ -534,111 +533,8 @@ The complete journey from listing to review:
 
 ---
 
-## Troubleshooting
-
-### Admin login fails with "incorrect password"
-
-The seed hash in an earlier version of `schema.sql` was incorrect. Fix the admin password directly in PostgreSQL:
-
-```sql
-psql -U postgres -d skillswap
-
-DELETE FROM users WHERE email = 'admin@skillswap.ac.ke';
-INSERT INTO users (email, password_hash, first_name, last_name, role, status)
-VALUES (
-  'admin@skillswap.ac.ke',
-  '$2a$12$6C5ssrwUYP8811ki/eY9pOdYzJ3z/HWCl7p0696Z967Z7gfz0RKgu',
-  'System', 'Admin', 'ADMIN', 'ACTIVE'
-);
-```
-
-Password is `Admin@1234`.
-
----
-
-### "Could not load data" on every page
-
-The frontend cannot reach the backend. Diagnose in this order:
-
-1. Confirm Spring Boot is running — terminal should show `Started SkillSwapApplication`.
-2. Test the backend directly:
-   ```bash
-   curl http://localhost:8080/api/auth/login \
-     -X POST -H "Content-Type: application/json" \
-     -d '{"email":"x","password":"x"}'
-   ```
-   You should get a JSON error response — not a connection refused.
-3. Open browser DevTools → **Network** tab → reload the page and inspect the failed request. Note the HTTP status code:
-   - No response / connection refused → backend is not running
-   - `401` → token is missing or expired (check Local Storage for `ss_token`)
-   - `403` → hitting an admin route as a student, or vice versa
-   - `404` → the endpoint path is wrong
-   - `500` → server-side error (check Spring Boot terminal logs)
-
----
-
-### `relation "users" does not exist` on startup
-
-The schema has not been applied. Run:
-
-```bash
-psql -U postgres -d skillswap -f skillswap/src/main/resources/schema.sql
-```
-
----
-
-### `SchemaManagementException: Schema-validation` on startup
-
-Hibernate validates the DB schema against the entities at startup (`ddl-auto: validate`). A mismatch means you are running an old database. Drop and recreate:
-
-```sql
-DROP DATABASE skillswap;
-CREATE DATABASE skillswap;
-```
-
-Then re-run `schema.sql`.
-
----
-
-### `password authentication failed for user "postgres"`
-
-Your PostgreSQL installation uses a different password. Update `application.yml`:
-
-```yaml
-spring:
-  datasource:
-    password: your_real_password_here
-```
-
----
-
-### CORS error in the browser console
-
-Confirm `CorsConfig.java` contains:
-
-```java
-config.setAllowedOriginPatterns(List.of("*"));
-config.setAllowCredentials(true);
-```
-
-Then **restart** the Spring Boot server (config changes require a restart).
-
----
-
-### Pages still show "Amara Kofi" / dummy data after login
-
-`api.js` is either not loaded on that page, or is loaded after the page script. Check that every HTML page has:
-
-```html
-<script src="api.js"></script>
-<script>
-  /* your page script here */
-</script>
-```
-
-in that order, inside `</body>` — not after `</html>`.
-
----
 
 *SkillSwap — Built with Java 17 · Spring Boot 3.2 · PostgreSQL · Vanilla JS*
+
+
 *Technical University of Kenya· Information Tech · Section Black*
